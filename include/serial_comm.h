@@ -3,400 +3,526 @@
 
 #include "command_functions.h"
 
-String dataMsg = "", dataMsgBuffer = "", dataMsgBufferArray[3];
-String sendMsg = "";
+// Serial Protocol Command IDs -------------
+const uint8_t START_BYTE = 0xAA;
+const uint8_t WRITE_VEL = 0x01;
+const uint8_t WRITE_PWM = 0x02;
+const uint8_t READ_POS = 0x03;
+const uint8_t READ_VEL = 0x04;
+const uint8_t READ_UVEL = 0x05;
+const uint8_t READ_TVEL = 0x06;
+const uint8_t SET_PPR = 0x07;
+const uint8_t GET_PPR = 0x08;
+const uint8_t SET_KP = 0x09;
+const uint8_t GET_KP = 0x0A;
+const uint8_t SET_KI = 0x0B;
+const uint8_t GET_KI = 0x0C;
+const uint8_t SET_KD = 0x0D;
+const uint8_t GET_KD = 0x0E;
+const uint8_t SET_RDIR = 0x0F;
+const uint8_t GET_RDIR = 0x10;
+const uint8_t SET_CUT_FREQ = 0x11;
+const uint8_t GET_CUT_FREQ = 0x12;
+const uint8_t SET_MAX_VEL = 0x13;
+const uint8_t GET_MAX_VEL = 0x14;
+const uint8_t SET_PID_MODE = 0x15;
+const uint8_t GET_PID_MODE = 0x16;
+const uint8_t SET_CMD_TIMEOUT = 0x17;
+const uint8_t GET_CMD_TIMEOUT = 0x18;
+const uint8_t SET_I2C_ADDR = 0x19;
+const uint8_t GET_I2C_ADDR = 0x1A;
+const uint8_t RESET_PARAMS = 0x1B;
+const uint8_t SET_USE_IMU = 0x1C;
+const uint8_t GET_USE_IMU = 0x1D;
+const uint8_t READ_ACC = 0x1E;
+const uint8_t READ_ACC_RAW = 0x1F;
+const uint8_t READ_ACC_OFF = 0x20;
+const uint8_t READ_ACC_VAR = 0x21;
+const uint8_t WRITE_ACC_OFF = 0x22;
+const uint8_t WRITE_ACC_VAR = 0x23;
+const uint8_t READ_GYRO = 0x24;
+const uint8_t READ_GYRO_RAW = 0x25;
+const uint8_t READ_GYRO_OFF = 0x26;
+const uint8_t READ_GYRO_VAR = 0x27;
+const uint8_t WRITE_GYRO_OFF = 0x28;
+const uint8_t WRITE_GYRO_VAR = 0x29;
+//---------------------------------------------
 
 
-void recieve_and_send_data(){
-  int indexPos = 0, i = 0;
-
-  if (Serial.available() > 0)
-  {
-    while (Serial.available())
-    {
-      dataMsg = Serial.readString();
-    }
-    dataMsg.trim();
-    if (dataMsg != "")
-    {
-      do
-      {
-        indexPos = dataMsg.indexOf(',');
-        if (indexPos != -1)
-        {
-          dataMsgBuffer = dataMsg.substring(0, indexPos);
-          dataMsg = dataMsg.substring(indexPos + 1, dataMsg.length());
-          dataMsgBufferArray[i] = dataMsgBuffer;
-          dataMsgBuffer = "";
-        }
-        else
-        {
-          if (dataMsg.length() > 0)
-            dataMsgBufferArray[i] = dataMsg;
-        }
-        i += 1;
-      } while (indexPos >= 0);
-    }
 
 
-    if (dataMsgBufferArray[0] != "")
-    {
-      int pos = dataMsgBufferArray[1].toInt();
-      bool pos_not_found = (pos < 0) || (pos > (num_of_motors-1));
 
-      digitalWrite(LED_BUILTIN, HIGH);
 
-      if (dataMsgBufferArray[0] == "/pos")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readPos(pos);
-        Serial.println(sendMsg);
-      }
 
-      else if (dataMsgBufferArray[0] == "/pwm")
-      {
-        if (pos_not_found)
-          sendMsg = "0";
-        else
-          sendMsg = writePWM(pos, dataMsgBufferArray[2].toInt());
-        Serial.println(sendMsg);
-      }
 
-      else if (dataMsgBufferArray[0] == "/vel")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.00";
-          else
-            sendMsg = readFilteredVel(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = writeSpeed(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
 
-      else if (dataMsgBufferArray[0] == "/u-vel")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readUnfilteredVel(pos);
-        Serial.println(sendMsg);
-      }
 
-      else if (dataMsgBufferArray[0] == "/t-vel")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readTargetVel(pos);
-        Serial.println(sendMsg);
-      }
 
-      else if (dataMsgBufferArray[0] == "/mode")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "-1";
-          else
-            sendMsg = getPidModeFunc(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = String(pos);
-          else
-            sendMsg = setPidModeFunc(pos, dataMsgBufferArray[2].toInt());
-        }
-        Serial.println(sendMsg);
-      }
+void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
-      else if (dataMsgBufferArray[0] == "/ppr")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getEncoderPPR(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setEncoderPPR(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/kp")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getMotorKp(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = String(pos);
-          else
-            sendMsg = setMotorKp(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/ki")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getMotorKi(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setMotorKi(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/kd")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getMotorKd(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setMotorKd(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/rdir")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getRdir(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setRdir(pos, dataMsgBufferArray[2].toInt());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/cut-freq")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getCutoffFreq(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setCutoffFreq(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/max-vel")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.0";
-          else
-            sendMsg = getMaxVel(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = setMaxVel(pos, dataMsgBufferArray[2].toDouble());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/timeout")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          sendMsg = getCmdTimeout();
-        }
-        else {
-          sendMsg = setCmdTimeout(dataMsgBufferArray[2].toInt());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/i2c")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          sendMsg = getI2cAddress();
-        }
-        else {
-          sendMsg = setI2cAddress(dataMsgBufferArray[2].toInt());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/reset")
-      {
-        sendMsg = triggerResetParams();
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/use-imu")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          sendMsg = getUseIMU();
-        }
-        else {
-          sendMsg = setUseIMU(dataMsgBufferArray[2].toInt());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/acc")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readAcc(pos);
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/acc-raw")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readAccRaw(pos);
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/acc-off")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.00";
-          else
-            sendMsg = readAccOffset(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = writeAccOffset(pos, dataMsgBufferArray[2].toFloat());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/acc-var")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.00";
-          else
-            sendMsg = readAccVariance(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = writeAccVariance(pos, dataMsgBufferArray[2].toFloat());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/gyro")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readGyro(pos);
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/gyro-raw")
-      {
-        if (pos_not_found)
-          sendMsg = "0.00";
-        else
-          sendMsg = readGyroRaw(pos);
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/gyro-off")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.00";
-          else
-            sendMsg = readGyroOffset(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = writeGyroOffset(pos, dataMsgBufferArray[2].toFloat());
-        }
-        Serial.println(sendMsg);
-      }
-
-      else if (dataMsgBufferArray[0] == "/gyro-var")
-      {
-        if (dataMsgBufferArray[2] == ""){
-          if (pos_not_found)
-            sendMsg = "0.00";
-          else
-            sendMsg = readGyroVariance(pos);
-        }
-        else {
-          if (pos_not_found)
-            sendMsg = "0";
-          else
-            sendMsg = writeGyroVariance(pos, dataMsgBufferArray[2].toFloat());
-        }
-        Serial.println(sendMsg);
-      }
-
-      digitalWrite(LED_BUILTIN, LOW);
-    }
-    else
-    {
-      digitalWrite(LED_BUILTIN, HIGH);
-
-      sendMsg = "0";
-      Serial.println(sendMsg);
-
-      digitalWrite(LED_BUILTIN, LOW);
+  gpio_set_level((gpio_num_t)LED_BUILTIN, 1);
+  switch (cmd) {
+    case WRITE_VEL: {
+      float v0, v1, v2, v3;
+      memcpy(&v0, &data[0], sizeof(float));
+      memcpy(&v1, &data[4], sizeof(float));
+      memcpy(&v2, &data[8], sizeof(float));
+      memcpy(&v3, &data[12], sizeof(float));
+      float res = writeSpeed(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
     }
 
-    sendMsg = "";
-    dataMsg = "";
-    dataMsgBuffer = "";
-    dataMsgBufferArray[0] = "";
-    dataMsgBufferArray[1] = "";
-    dataMsgBufferArray[2] = "";
-  } 
+
+    case WRITE_PWM: {
+      float pwm0, pwm1, pwm2, pwm3;
+      memcpy(&pwm0, &data[0], sizeof(float));
+      memcpy(&pwm1, &data[4], sizeof(float));
+      memcpy(&pwm2, &data[8], sizeof(float));
+      memcpy(&pwm3, &data[12], sizeof(float));
+      float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_POS: {
+      float pos0, pos1, pos2, pos3;
+      readPos(pos0, pos1, pos2, pos3);
+      Serial.write((uint8_t*)&pos0, sizeof(pos0));
+      Serial.write((uint8_t*)&pos1, sizeof(pos1));
+      Serial.write((uint8_t*)&pos2, sizeof(pos2));
+      Serial.write((uint8_t*)&pos3, sizeof(pos3));
+      break;
+    }
+
+
+    case READ_VEL: {
+      float v0, v1, v2, v3;
+      readFilteredVel(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&v0, sizeof(v0));
+      Serial.write((uint8_t*)&v1, sizeof(v1));
+      Serial.write((uint8_t*)&v2, sizeof(v2));
+      Serial.write((uint8_t*)&v3, sizeof(v3));
+      break;
+    }
+
+
+    case READ_UVEL: {
+      float v0, v1, v2, v3;
+      readUnfilteredVel(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&v0, sizeof(v0));
+      Serial.write((uint8_t*)&v1, sizeof(v1));
+      Serial.write((uint8_t*)&v2, sizeof(v2));
+      Serial.write((uint8_t*)&v3, sizeof(v3));
+      break;
+    }
+
+
+    case READ_TVEL: {
+      float v0, v1, v2, v3;
+      readTargetVel(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&v0, sizeof(v0));
+      Serial.write((uint8_t*)&v1, sizeof(v1));
+      Serial.write((uint8_t*)&v2, sizeof(v2));
+      Serial.write((uint8_t*)&v3, sizeof(v3));
+      break;
+    }
+
+    case SET_PPR: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setEncoderPPR((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_PPR: {
+      uint8_t pos = data[0];
+      float res = getEncoderPPR((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_KP: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setMotorKp((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_KP: {
+      uint8_t pos = data[0];
+      float res = getMotorKp((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_KI: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setMotorKi((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_KI: {
+      uint8_t pos = data[0];
+      float res = getMotorKi((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    
+    case SET_KD: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setMotorKd((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_KD: {
+      uint8_t pos = data[0];
+      float res = getMotorKd((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_RDIR: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setRdir((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_RDIR: {
+      uint8_t pos = data[0];
+      float res = getRdir((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_CUT_FREQ: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setCutoffFreq((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_CUT_FREQ: {
+      uint8_t pos = data[0];
+      float res = getCutoffFreq((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_MAX_VEL: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setMaxVel((int)pos, (double)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_MAX_VEL: {
+      uint8_t pos = data[0];
+      float res = getMaxVel((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_PID_MODE: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setPidModeFunc((int)pos, (int)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_PID_MODE: {
+      uint8_t pos = data[0];
+      float res = getPidModeFunc((int)pos);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_CMD_TIMEOUT: {
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setCmdTimeout((int)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_CMD_TIMEOUT: {
+      float res = getCmdTimeout();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_I2C_ADDR: {
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setI2cAddress((int)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_I2C_ADDR: {
+      float res = getI2cAddress();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case RESET_PARAMS: {
+      float res = triggerResetParams();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case SET_USE_IMU: {
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setUseIMU((int)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case GET_USE_IMU: {
+      float res = getUseIMU();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_ACC: {
+      float ax, ay, az, dummy=0.0;
+      readAcc(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_ACC_RAW: {
+      float ax, ay, az, dummy=0.0;
+      readAccRaw(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_ACC_OFF: {
+      float ax, ay, az, dummy=0.0;
+      readAccOffset(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_ACC_VAR: {
+      float ax, ay, az, dummy=0.0;
+      readAccVariance(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case WRITE_ACC_OFF: {
+      float ax, ay, az, dummy=0.0;
+      memcpy(&ax, &data[0], sizeof(float));
+      memcpy(&ay, &data[4], sizeof(float));
+      memcpy(&az, &data[8], sizeof(float));
+      float res = writeAccOffset(ax, ay, az);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case WRITE_ACC_VAR: {
+      float ax, ay, az, dummy=0.0;
+      memcpy(&ax, &data[0], sizeof(float));
+      memcpy(&ay, &data[4], sizeof(float));
+      memcpy(&az, &data[8], sizeof(float));
+      float res = writeAccVariance(ax, ay, az);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_GYRO: {
+      float gx, gy, gz, dummy=0.0;
+      readGyro(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_GYRO_RAW: {
+      float gx, gy, gz, dummy=0.0;
+      readGyroRaw(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_GYRO_OFF: {
+      float gx, gy, gz, dummy=0.0;
+      readGyroOffset(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case READ_GYRO_VAR: {
+      float gx, gy, gz, dummy=0.0;
+      readGyroVariance(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      Serial.write((uint8_t*)&dummy, sizeof(dummy));
+      break;
+    }
+
+
+    case WRITE_GYRO_OFF: {
+      float gx, gy, gz, dummy=0.0;
+      memcpy(&gx, &data[0], sizeof(float));
+      memcpy(&gy, &data[4], sizeof(float));
+      memcpy(&gz, &data[8], sizeof(float));
+      float res = writeGyroOffset(gx, gy, gz);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case WRITE_GYRO_VAR: {
+      float gx, gy, gz, dummy=0.0;
+      memcpy(&gx, &data[0], sizeof(float));
+      memcpy(&gy, &data[4], sizeof(float));
+      memcpy(&gz, &data[8], sizeof(float));
+      float res = writeGyroVariance(gx, gy, gz);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    default: {
+      float error = 0.0;
+      Serial.write((uint8_t*)&error, sizeof(error));
+      break;
+    }
+  }
+
+  gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void recieve_and_send_data() {
+  static uint8_t state = 0;
+  static uint8_t cmd, length;
+  static uint8_t buffer[32];
+  static uint8_t index = 0;
+  static uint8_t checksum = 0, tempCheck;
+
+  while (Serial.available()) {
+    uint8_t b = Serial.read();
+
+    switch (state) {
+      case 0: // Wait for start
+        if (b == START_BYTE) {
+          state = 1;
+          checksum = b;
+        }
+        break;
+
+      case 1: // Command
+        cmd = b;
+        checksum += b;
+        state = 2;
+        break;
+
+      case 2: // Length
+        length = b;
+        checksum += b;
+        if (length==0){
+          state = 4;
+        }
+        else{
+          index = 0;
+          state = 3;
+        }
+        break;
+
+      case 3: // Payload
+        buffer[index++] = b;
+        checksum += b;
+        if (index >= length) state = 4;
+        break;
+
+      case 4: // Checksum
+        if ((checksum & 0xFF) == b) {
+          processCommand(cmd, buffer, length);
+        } else {
+          float error = 0.0;
+          Serial.write((uint8_t*)&error, sizeof(error));
+        }
+        state = 0; // reset for next packet
+        break;
+    }
+  }
 }
 
 #endif

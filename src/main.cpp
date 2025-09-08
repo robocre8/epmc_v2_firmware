@@ -141,8 +141,9 @@ void setup()
 {
   loadStoredParams();
 
-  Serial.begin(115200);
-  Serial.setTimeout(2);
+  // Serial.begin(115200);
+  // Serial.begin(460800);
+  Serial.begin(921600);
 
   if (useIMU){
     Wire.begin();
@@ -185,11 +186,12 @@ void setup()
 void loop()
 {
   // Serial comm loop
-  if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  {
-    recieve_and_send_data();
-    serialLoopTime = millis();
-  }
+  recieve_and_send_data();
+  // if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
+  // {
+  //   recieve_and_send_data();
+  //   serialLoopTime = millis();
+  // }
 
   // Sensor update
   for (int i = 0; i < num_of_motors; i += 1)

@@ -218,25 +218,6 @@ float gyroCal[3] = {
   0.0
 };
 
-float rpy[3] = {
-  0.0,
-  0.0,
-  0.0
-};
-
-float rpyVar[3] = {
-  0.0,
-  0.0,
-  0.0
-};
-
-float quat[4] = {
-  0.0,
-  0.0,
-  0.0,
-  0.0
-};
-
 int useIMU = 0;
 
 MPU6050 imu;
@@ -401,105 +382,119 @@ void loadStoredParams(){
 
 
 //--------------- global functions ----------------//
-
-String readPos(int motor_no){
-  double posData = encoder[motor_no].getAngPos();
-  String data = String(rdir[motor_no] * posData, 3);
-  return data;
-}
-
-String readFilteredVel(int motor_no){
-  String data = String((double)rdir[motor_no] * filteredVel[motor_no], 4);
-  return data;
-}
-
-String readUnfilteredVel(int motor_no){
-  String data = String((double)rdir[motor_no] * unfilteredVel[motor_no], 4);
-  return data;
-}
-
-String readTargetVel(int motor_no)
+float writeSpeed(float v0, float v1, float v2, float v3)
 {
-  String data = String((double)rdir[motor_no] * target[motor_no], 4);
-  return data;
-}
+  float targetVel[4] = {v0, v1, v2, v3};
+  for (int i = 0; i < num_of_motors; i += 1)
+  {
+    pidMode[i] = 1;
 
+    double vel;
+    if (targetVel[i] > maxVel[i]){
+      vel = maxVel[i];
+    }
+    else if (targetVel[i] < (-1.00 * maxVel[i])){
+      vel = -1.00 * maxVel[i];
+    }
+    else {
+      vel = targetVel[i];
+    }
+      
+    target[i] = (double)rdir[i] * vel;
+    isMotorCommanded[i] = 1;
 
-String writePWM(int motor_no, int pwm)
-{
-  pidMode[motor_no] = 0;
-
-  int p;
-  if (pwm>255)
-    p = 255;
-  else if (pwm<-255)
-    p = -255;
-  else
-    p = pwm;
-  isMotorCommanded[motor_no] = 1;
-  if (p == 0) isMotorCommanded[motor_no] = 0;
-  motor[motor_no].sendPWM(rdir[motor_no] * p);
-
-  cmdVelTimeout[motor_no] = millis();
-  
-  return "1";
-}
-
-
-String writeSpeed(int motor_no, double targetVel)
-{
-  pidMode[motor_no] = 1;
-
-  double vel;
-  if (targetVel > maxVel[motor_no]){
-    vel = maxVel[motor_no];
+    cmdVelTimeout[i] = millis();
   }
-  else if (targetVel < (-1.00 * maxVel[motor_no])){
-    vel = -1.00 * maxVel[motor_no];
-  }
-  else {
-    vel = targetVel;
-  }
-    
-  target[motor_no] = (double)rdir[motor_no] * vel;
-  isMotorCommanded[motor_no] = 1;
 
-  cmdVelTimeout[motor_no] = millis();
-
-  return "1";
+  return 1.0;
 }
 
-
-String setPidModeFunc(int motor_no, int mode)
+float writePWM(int pwm0, int pwm1, int pwm2, int pwm3)
 {
-  pidMode[motor_no] = mode;
-  motor[motor_no].sendPWM(0);
-  pidMotor[motor_no].begin();
+  int pwm[4] = {pwm0, pwm1, pwm2, pwm3};
+  for (int i = 0; i < num_of_motors; i += 1){
+    pidMode[i] = 0;
 
-  return "1";
+    int p;
+    if (pwm[i]>255)
+      p = 255;
+    else if (pwm[i]<-255)
+      p = -255;
+    else
+      p = pwm[i];
+    isMotorCommanded[i] = 1;
+    if (p == 0) isMotorCommanded[i] = 0;
+    motor[i].sendPWM(rdir[i] * p);
+
+    cmdVelTimeout[i] = millis();
+  }
+  return 1.0;
 }
-String getPidModeFunc(int motor_no)
+
+void readPos(float &pos0, float &pos1, float &pos2, float &pos3)
+{  
+  double posData[4];
+  for (int i = 0; i < num_of_motors; i += 1){
+    posData[i] = rdir[i] * encoder[i].getAngPos();
+  }
+  pos0 = (float)posData[0];
+  pos1 = (float)posData[1];
+  pos2 = (float)posData[2];
+  pos3 = (float)posData[3];
+}
+
+void readFilteredVel(float &v0, float &v1, float &v2, float &v3)
 {
-  return String(pidMode[motor_no]);
+  double velData[4];
+  for (int i = 0; i < num_of_motors; i += 1){
+    velData[i] = (double)rdir[i] * filteredVel[i];
+  }
+  v0 = (float)velData[0];
+  v1 = (float)velData[1];
+  v2 = (float)velData[2];
+  v3 = (float)velData[3];
 }
 
+void readUnfilteredVel(float &v0, float &v1, float &v2, float &v3)
+{
+  double velData[4];
+  for (int i = 0; i < num_of_motors; i += 1){
+    velData[i] = (double)rdir[i] * unfilteredVel[i];
+  }
+  v0 = (float)velData[0];
+  v1 = (float)velData[1];
+  v2 = (float)velData[2];
+  v3 = (float)velData[3];
+}
 
-String setEncoderPPR(int motor_no, double ppr)
+void readTargetVel(float &v0, float &v1, float &v2, float &v3)
+{
+  double velData[4];
+  for (int i = 0; i < num_of_motors; i += 1){
+    velData[i] = (double)rdir[i] * target[i];
+  }
+  v0 = (float)velData[0];
+  v1 = (float)velData[1];
+  v2 = (float)velData[2];
+  v3 = (float)velData[3];
+}
+
+float setEncoderPPR(int motor_no, double ppr)
 {
   enc_ppr[motor_no] = ppr;
   storage.begin(params_ns, false);
   storage.putDouble(ppr_key[motor_no], enc_ppr[motor_no]);
   storage.end();
   encoder[motor_no].setPulsePerRev(enc_ppr[motor_no]);
-  return "1";
+  return 1.0;
 }
-String getEncoderPPR(int motor_no)
+float getEncoderPPR(int motor_no)
 {
-  return String(enc_ppr[motor_no]);
+  return (float)enc_ppr[motor_no];
 }
 
 
-String setMotorKp(int motor_no, double Kp)
+float setMotorKp(int motor_no, double Kp)
 {
   kp[motor_no] = Kp;
   storage.begin(params_ns, false);
@@ -507,15 +502,15 @@ String setMotorKp(int motor_no, double Kp)
   storage.end();
   pidMotor[motor_no].setKp(kp[motor_no]);
   pidMotor[motor_no].begin();
-  return "1";
+  return 1.0;
 }
-String getMotorKp(int motor_no)
+float getMotorKp(int motor_no)
 {
-  return String(kp[motor_no], 4);
+  return (float)kp[motor_no];
 }
 
 
-String setMotorKi(int motor_no, double Ki)
+float setMotorKi(int motor_no, double Ki)
 {
   ki[motor_no] = Ki;
   storage.begin(params_ns, false);
@@ -523,15 +518,15 @@ String setMotorKi(int motor_no, double Ki)
   storage.end();
   pidMotor[motor_no].setKi(ki[motor_no]);
   pidMotor[motor_no].begin();
-  return "1";
+  return 1.0;
 }
-String getMotorKi(int motor_no)
+float getMotorKi(int motor_no)
 {
-  return String(ki[motor_no], 4);
+  return (float)ki[motor_no];
 }
 
 
-String setMotorKd(int motor_no, double Kd)
+float setMotorKd(int motor_no, double Kd)
 {
   kd[motor_no] = Kd;
   storage.begin(params_ns, false);
@@ -539,15 +534,15 @@ String setMotorKd(int motor_no, double Kd)
   storage.end();
   pidMotor[motor_no].setKd(kd[motor_no]);
   pidMotor[motor_no].begin();
-  return "1";
+  return 1.0;
 }
-String getMotorKd(int motor_no)
+float getMotorKd(int motor_no)
 {
-  return String(kd[motor_no], 4);
+  return (float)kd[motor_no];
 }
 
 
-String setRdir(int motor_no, double dir)
+float setRdir(int motor_no, double dir)
 {
   if (dir >= 0)
     rdir[motor_no] = 1;
@@ -556,44 +551,63 @@ String setRdir(int motor_no, double dir)
   storage.begin(params_ns, false);
   storage.putInt(rdir_key[motor_no], rdir[motor_no]);
   storage.end();
-  return "1";
+  return 1.0;
 }
-String getRdir(int motor_no)
+float getRdir(int motor_no)
 {
-  return String(rdir[motor_no]);
+  return (float)rdir[motor_no];
 }
 
 
-String setMaxVel(int motor_no, double max_vel)
-{
-  maxVel[motor_no] = fabs(max_vel);
-  storage.begin(params_ns, false);
-  storage.putDouble(maxVel_key[motor_no], maxVel[motor_no]);
-  storage.end();
-  return "1";
-}
-String getMaxVel(int motor_no)
-{
-  return String(maxVel[motor_no], 2);
-}
 
-
-String setCutoffFreq(int motor_no, double f0)
+float setCutoffFreq(int motor_no, double f0)
 {
   cutOffFreq[motor_no] = f0;
   storage.begin(params_ns, false);
   storage.putDouble(cf_key[motor_no], cutOffFreq[motor_no]);
   storage.end();
   velFilter[motor_no].setCutOffFreq(cutOffFreq[motor_no]);
-  return "1";
+  return 1.0;
 }
-String getCutoffFreq(int motor_no)
+float getCutoffFreq(int motor_no)
 {
-  return String(cutOffFreq[motor_no]);
+  return (float)cutOffFreq[motor_no];
 }
 
 
-String setCmdTimeout(int timeout_ms)
+
+float setMaxVel(int motor_no, double max_vel)
+{
+  maxVel[motor_no] = fabs(max_vel);
+  storage.begin(params_ns, false);
+  storage.putDouble(maxVel_key[motor_no], maxVel[motor_no]);
+  storage.end();
+  return 1.0;
+}
+float getMaxVel(int motor_no)
+{
+  return (float)maxVel[motor_no];
+}
+
+
+
+float setPidModeFunc(int motor_no, int mode)
+{
+  pidMode[motor_no] = mode;
+  motor[motor_no].sendPWM(0);
+  pidMotor[motor_no].begin();
+
+  return 1.0;
+}
+float getPidModeFunc(int motor_no)
+{
+  return (float)pidMode[motor_no];
+}
+
+
+
+
+float setCmdTimeout(int timeout_ms)
 {
   unsigned long cmdTimeout = timeout_ms;
   if (cmdTimeout < 10)
@@ -608,31 +622,22 @@ String setCmdTimeout(int timeout_ms)
       cmdVelTimeout[i] = millis();
     }
   }
-  return "1";
+  return 1.0;
 }
-String getCmdTimeout()
+float getCmdTimeout()
 {
-  return String(cmdVelTimeoutInterval);
+  return (float)cmdVelTimeoutInterval;
 }
 
 
-String triggerResetParams()
-{
-  storage.begin(params_ns, false);
-  firstLoad = true;
-  storage.putBool(firstLoad_key, firstLoad);
-  storage.end();
-  // reload to reset
-  loadStoredParams();
-  return "1";
-}
+
 
 #include "i2c_comm.h"
-String setI2cAddress(int address)
+float setI2cAddress(int address)
 {
   if(useIMU==0){
     if((address <= 0) || (address > 255)){
-      return "0";
+      return 0.0;
     }
     else {
       i2cAddress = (uint8_t)address;
@@ -642,172 +647,159 @@ String setI2cAddress(int address)
 
       Wire.begin(i2cAddress);
 
-      return "1";
+      return 1.0;
     }
   }
   else {
-    return "0";
+    return 0.0;
   }
   
 }
-String getI2cAddress()
+float getI2cAddress()
 {
-  return String(i2cAddress);
+  return (float)i2cAddress;
+}
+
+
+
+float triggerResetParams()
+{
+  storage.begin(params_ns, false);
+  firstLoad = true;
+  storage.putBool(firstLoad_key, firstLoad);
+  storage.end();
+  // reload to reset
+  loadStoredParams();
+  return 1.0;
 }
 //-----------------------------------------------------------------//
 
 
 
 //------------------------------------------------------------------//
-String getUseIMU(){
-  return String(useIMU);
-}
-String setUseIMU(int val){
+float setUseIMU(int val)
+{
   if((val < 0) || (val > 1)){
-    return "0";
+    return 0.0;
   }
-
   storage.begin(params_ns, false);
   storage.putInt(useIMU_key, val);
   storage.end();
 
-  return "1";
+  return 1.0;
 }
-
-
-String readAcc(int no)
+float getUseIMU()
 {
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(accCal[no], 6);
+  return (float)useIMU;
 }
 
 
-String readAccRaw(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(accRaw[no], 6);
+void readAcc(float &ax, float &ay, float &az)
+{  
+  ax = accCal[0];
+  ay = accCal[1];
+  az = accCal[2];
 }
 
 
-String readAccOffset(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(accOff[no], 8);
-}
-String writeAccOffset(int no, float val) {
-  bool not_allowed = (no < 0) || (no > (2));
-  
-  if (not_allowed) 
-    return "0";
-
-  accOff[no] = val;
-  storage.begin(params_ns, false);
-  storage.putFloat(accOff_key[no], accOff[no]);
-  storage.end();
-  return "1";
+void readAccRaw(float &ax, float &ay, float &az)
+{  
+  ax = accRaw[0];
+  ay = accRaw[1];
+  az = accRaw[2];
 }
 
 
-String readAccVariance(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(accVar[no], 8);
+void readAccOffset(float &ax, float &ay, float &az)
+{  
+  ax = accOff[0];
+  ay = accOff[1];
+  az = accOff[2];
 }
-String writeAccVariance(int no, float val) {
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0";
-
-  accVar[no] = val;
-  storage.begin(params_ns, false);
-  storage.putFloat(accVar_key[no], accVar[no]);
-  storage.end();
-  return "1";
+float writeAccOffset(float ax, float ay, float az) {
+  float val[3] = {ax, ay, az};
+  for (int i = 0; i < 3; i += 1)
+  {
+    accOff[i] = val[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(accOff_key[i], accOff[i]);
+    storage.end();
+  }
+  return 1.0;
 }
 
 
-String readGyro(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(gyroCal[no], 6);
+void readAccVariance(float &ax, float &ay, float &az)
+{  
+  ax = accVar[0];
+  ay = accVar[1];
+  az = accVar[2];
+}
+float writeAccVariance(float ax, float ay, float az) {
+  float val[3] = {ax, ay, az};
+  for (int i = 0; i < 3; i += 1)
+  {
+    accVar[i] = val[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(accVar_key[i], accVar[i]);
+    storage.end();
+  }
+  return 1.0;
 }
 
 
-String readGyroRaw(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
 
-  if (not_allowed) 
-    return "0.000";
-
-  return String(gyroRaw[no], 6);
+void readGyro(float &gx, float &gy, float &gz)
+{  
+  gx = gyroCal[0];
+  gy = gyroCal[1];
+  gz = gyroCal[2];
 }
 
 
-String readGyroOffset(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(gyroOff[no], 8);
-}
-String writeGyroOffset(int no, float val) {
-  bool not_allowed = (no < 0) || (no > (2));
-  
-  if (not_allowed) 
-    return "0";
-
-  gyroOff[no] = val;
-  storage.begin(params_ns, false);
-  storage.putFloat(gyroOff_key[no], gyroOff[no]);
-  storage.end();
-  return "1";
+void readGyroRaw(float &gx, float &gy, float &gz)
+{  
+  gx = gyroRaw[0];
+  gy = gyroRaw[1];
+  gz = gyroRaw[2];
 }
 
 
-String readGyroVariance(int no)
-{
-  bool not_allowed = (no < 0) || (no > (2));
-
-  if (not_allowed) 
-    return "0.000";
-
-  return String(gyroVar[no], 6);
+void readGyroOffset(float &gx, float &gy, float &gz)
+{  
+  gx = gyroOff[0];
+  gy = gyroOff[1];
+  gz = gyroOff[2];
 }
-String writeGyroVariance(int no, float val) {
-  bool not_allowed = (no < 0) || (no > (2));
-  
-  if (not_allowed) 
-    return "0";
+float writeGyroOffset(float gx, float gy, float gz) {
+  float val[3] = {gx, gy, gz};
+  for (int i = 0; i < 3; i += 1)
+  {
+    gyroOff[i] = val[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(gyroOff_key[i], gyroOff[i]);
+    storage.end();
+  }
+  return 1.0;
+}
 
-  gyroVar[no] = val;
-  storage.begin(params_ns, false);
-  storage.putFloat(gyroVar_key[no], gyroVar[no]);
-  storage.end();
-  return "1";
+
+void readGyroVariance(float &gx, float &gy, float &gz)
+{  
+  gx = gyroVar[0];
+  gy = gyroVar[1];
+  gz = gyroVar[2];
+}
+float writeGyroVariance(float gx, float gy, float gz) {
+  float val[3] = {gx, gy, gz};
+  for (int i = 0; i < 3; i += 1)
+  {
+    gyroVar[i] = val[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(gyroVar_key[i], gyroVar[i]);
+    storage.end();
+  }
+  return 1.0;
 }
 
 //-------------------------------------------------------------------//
