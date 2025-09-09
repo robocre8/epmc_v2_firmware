@@ -3,60 +3,6 @@
 
 #include "command_functions.h"
 
-// Serial Protocol Command IDs -------------
-const uint8_t START_BYTE = 0xAA;
-const uint8_t WRITE_VEL = 0x01;
-const uint8_t WRITE_PWM = 0x02;
-const uint8_t READ_POS = 0x03;
-const uint8_t READ_VEL = 0x04;
-const uint8_t READ_UVEL = 0x05;
-const uint8_t READ_TVEL = 0x06;
-const uint8_t SET_PPR = 0x07;
-const uint8_t GET_PPR = 0x08;
-const uint8_t SET_KP = 0x09;
-const uint8_t GET_KP = 0x0A;
-const uint8_t SET_KI = 0x0B;
-const uint8_t GET_KI = 0x0C;
-const uint8_t SET_KD = 0x0D;
-const uint8_t GET_KD = 0x0E;
-const uint8_t SET_RDIR = 0x0F;
-const uint8_t GET_RDIR = 0x10;
-const uint8_t SET_CUT_FREQ = 0x11;
-const uint8_t GET_CUT_FREQ = 0x12;
-const uint8_t SET_MAX_VEL = 0x13;
-const uint8_t GET_MAX_VEL = 0x14;
-const uint8_t SET_PID_MODE = 0x15;
-const uint8_t GET_PID_MODE = 0x16;
-const uint8_t SET_CMD_TIMEOUT = 0x17;
-const uint8_t GET_CMD_TIMEOUT = 0x18;
-const uint8_t SET_I2C_ADDR = 0x19;
-const uint8_t GET_I2C_ADDR = 0x1A;
-const uint8_t RESET_PARAMS = 0x1B;
-const uint8_t SET_USE_IMU = 0x1C;
-const uint8_t GET_USE_IMU = 0x1D;
-const uint8_t READ_ACC = 0x1E;
-const uint8_t READ_ACC_RAW = 0x1F;
-const uint8_t READ_ACC_OFF = 0x20;
-const uint8_t READ_ACC_VAR = 0x21;
-const uint8_t WRITE_ACC_OFF = 0x22;
-const uint8_t WRITE_ACC_VAR = 0x23;
-const uint8_t READ_GYRO = 0x24;
-const uint8_t READ_GYRO_RAW = 0x25;
-const uint8_t READ_GYRO_OFF = 0x26;
-const uint8_t READ_GYRO_VAR = 0x27;
-const uint8_t WRITE_GYRO_OFF = 0x28;
-const uint8_t WRITE_GYRO_VAR = 0x29;
-//---------------------------------------------
-
-
-
-
-
-
-
-
-
-
 
 void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
@@ -475,7 +421,7 @@ void recieve_and_send_data() {
   static uint8_t cmd, length;
   static uint8_t buffer[32];
   static uint8_t index = 0;
-  static uint8_t checksum = 0, tempCheck;
+  static uint8_t checksum = 0;
 
   while (Serial.available()) {
     uint8_t b = Serial.read();

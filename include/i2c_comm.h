@@ -4,129 +4,188 @@
 #include <Wire.h>
 #include "command_functions.h"
 
-String i2cDataMsg = "", i2cDataMsgBuffer = "", i2cDataMsgBufferArray[3];
-String i2cSendMsg = "";
+const uint8_t MAX_I2C_BUFFER = 32;
+static uint8_t sendMsgBuffer[MAX_I2C_BUFFER];
+static uint8_t sendMsgLength = 0;
+
+void clearSendMsgBuffer(){
+  for (uint8_t i=0; i< MAX_I2C_BUFFER; i+=1){
+    sendMsgBuffer[i] = 0x00;
+  }
+}
+// Pack float response into txBuffer
+void prepareResponse(float res) {
+  sendMsgLength = 4;
+  memcpy(&sendMsgBuffer[0], &res, sizeof(float));
+}
+
+void prepareResponse(float res0, float res1, float res2, float res3) {
+  sendMsgLength = 16;
+  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
+  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
+  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
+  memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
+}
+
+// Example command handler
+void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
+
+  gpio_set_level((gpio_num_t)LED_BUILTIN, 1);
+
+  switch (cmd) {
+    case WRITE_VEL: {
+      float v0, v1, v2, v3;
+      memcpy(&v0, &data[0], sizeof(float));
+      memcpy(&v1, &data[4], sizeof(float));
+      memcpy(&v2, &data[8], sizeof(float));
+      memcpy(&v3, &data[12], sizeof(float));
+      float res = writeSpeed(v0, v1, v2, v3);
+      prepareResponse(res);
+      break;
+    }
 
 
-void onRequest() {
-  // Wire.print(i2cSendMsg);
-  // i2cSendMsg = "";
+    case WRITE_PWM: {
+      float pwm0, pwm1, pwm2, pwm3;
+      memcpy(&pwm0, &data[0], sizeof(float));
+      memcpy(&pwm1, &data[4], sizeof(float));
+      memcpy(&pwm2, &data[8], sizeof(float));
+      memcpy(&pwm3, &data[12], sizeof(float));
+      float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      prepareResponse(res);
+      break;
+    }
+
+
+    case READ_POS: {
+      float pos0, pos1, pos2, pos3;
+      readPos(pos0, pos1, pos2, pos3);
+      prepareResponse(pos0, pos1, pos2, pos3);
+      break;
+    }
+
+
+    case READ_VEL: {
+      float v0, v1, v2, v3;
+      readFilteredVel(v0, v1, v2, v3);
+      prepareResponse(v0, v1, v2, v3);
+      break;
+    }
+
+
+    case READ_UVEL: {
+      float v0, v1, v2, v3;
+      readUnfilteredVel(v0, v1, v2, v3);
+      prepareResponse(v0, v1, v2, v3);
+      break;
+    }
+
+
+    case SET_CMD_TIMEOUT: {
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setCmdTimeout((int)value);
+      prepareResponse(res);
+      break;
+    }
+
+    case GET_CMD_TIMEOUT: {
+      float res = getCmdTimeout();
+      prepareResponse(res);
+      break;
+    }
+
+
+    case SET_PID_MODE: {
+      uint8_t pos = data[0];
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setPidModeFunc((int)pos, (int)value);
+      prepareResponse(res);
+      break;
+    }
+
+    case GET_PID_MODE: {
+      uint8_t pos = data[0];
+      float res = getPidModeFunc((int)pos);
+      prepareResponse(res);
+      break;
+    }
+
+
+    default: {
+      float error = 0.0;
+      prepareResponse(error);
+      break;
+    }
+  }
 }
 
 
-void onReceive(int dataSizeInBytes) {
-  // int indexPos = 0, i = 0;
 
-  // for (int i = 0; i < dataSizeInBytes; i += 1)
-  // {
-  //   char c = Wire.read();
-  //   i2cDataMsg += c;
-  // }
 
-  // i2cDataMsg.trim();
+// Called when master requests data
+void onRequest() {
+  Wire.write(sendMsgBuffer, sendMsgLength);
+  clearSendMsgBuffer();
+  gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+}
 
-  // if (i2cDataMsg != "")
-  // {
-  //   do
-  //   {
-  //     indexPos = i2cDataMsg.indexOf(',');
-  //     if (indexPos != -1)
-  //     {
-  //       i2cDataMsgBuffer = i2cDataMsg.substring(0, indexPos);
-  //       i2cDataMsg = i2cDataMsg.substring(indexPos + 1, i2cDataMsg.length());
-  //       i2cDataMsgBufferArray[i] = i2cDataMsgBuffer;
-  //       i2cDataMsgBuffer = "";
-  //     }
-  //     else
-  //     {
-  //       if (i2cDataMsg.length() > 0)
-  //         i2cDataMsgBufferArray[i] = i2cDataMsg;
-  //     }
-  //     i += 1;
-  //   } while (indexPos >= 0);
-  // }
+// Called when master sends data
+void onReceive(int numBytes) {
+  static uint8_t readState = 0;
+  static uint8_t msgCmd, msgLength;
+  static uint8_t msgBuffer[MAX_I2C_BUFFER];
+  static uint8_t msgIndex = 0;
+  static uint8_t msgChecksum = 0;
 
-  // if (i2cDataMsgBufferArray[0] != "")
-  // {
-  //   int motor_no = i2cDataMsgBufferArray[1].toInt();
-  //   bool motor_no_not_found = (motor_no < 0) || (motor_no > (num_of_motors-1));
+  while (Wire.available()) {
+    uint8_t b = Wire.read();
 
-  //   digitalWrite(LED_BUILTIN, HIGH);
+    switch (readState) {
+      case 0: // Wait for start
+        if (b == START_BYTE) {
+          readState = 1;
+          msgChecksum = b;
+        }
+        break;
 
-  //   if (i2cDataMsgBufferArray[0] == "/pos")
-  //   {
-  //     if (motor_no_not_found)
-  //       i2cSendMsg = "0.00";
-  //     else
-  //       i2cSendMsg = readPos(motor_no);
-  //   }
+      case 1: // Command
+        msgCmd = b;
+        msgChecksum += b;
+        readState = 2;
+        break;
 
-  //   else if (i2cDataMsgBufferArray[0] == "/pwm")
-  //   {
-  //     if (motor_no_not_found)
-  //       i2cSendMsg = "0";
-  //     else
-  //       i2cSendMsg = writePWM(motor_no, i2cDataMsgBufferArray[2].toInt());
-  //   }
+      case 2: // Length
+        msgLength = b;
+        msgChecksum += b;
+        if (msgLength==0){
+          readState = 4;
+        }
+        else{
+          msgIndex = 0;
+          readState = 3;
+        }
+        break;
 
-  //   else if (i2cDataMsgBufferArray[0] == "/vel")
-  //   {
-  //     if (i2cDataMsgBufferArray[2] == ""){
-  //       if (motor_no_not_found)
-  //         i2cSendMsg = "0.00";
-  //       else
-  //         i2cSendMsg = readFilteredVel(motor_no);
-  //     }
-  //     else {
-  //       if (motor_no_not_found)
-  //         i2cSendMsg = "0";
-  //       else
-  //         i2cSendMsg = writeSpeed(motor_no, i2cDataMsgBufferArray[2].toDouble());
-  //     }
-  //   }
+      case 3: // Payload
+        msgBuffer[msgIndex++] = b;
+        msgChecksum += b;
+        if (msgIndex >= msgLength) readState = 4;
+        break;
 
-  //   else if (i2cDataMsgBufferArray[0] == "/mode")
-  //     {
-  //       if (i2cDataMsgBufferArray[2] == ""){
-  //         if (motor_no_not_found)
-  //           i2cSendMsg = "-1";
-  //         else
-  //           i2cSendMsg = getPidModeFunc(motor_no);
-  //       }
-  //       else {
-  //         if (motor_no_not_found)
-  //           i2cSendMsg = String(motor_no);
-  //         else
-  //           i2cSendMsg = setPidModeFunc(motor_no, i2cDataMsgBufferArray[2].toInt());
-  //       }
-  //     }
+      case 4: // Checksum
+        if ((msgChecksum & 0xFF) == b) {
+          handleCommand(msgCmd, msgBuffer, msgLength);
+        } else {
+          float error = 0.0;
+          prepareResponse(error);
+        }
+        readState = 0; // reset for next packet
+        break;
+    }
+  }
 
-  //   else if (i2cDataMsgBufferArray[0] == "/timeout")
-  //   {
-  //     if (i2cDataMsgBufferArray[2] == ""){
-  //       i2cSendMsg = getCmdTimeout();
-  //     }
-  //     else {
-  //       i2cSendMsg = setCmdTimeout(i2cDataMsgBufferArray[2].toInt());
-  //     }
-  //   }
-
-  //   digitalWrite(LED_BUILTIN, LOW);
-  // }
-  // else
-  // {
-  //   digitalWrite(LED_BUILTIN, HIGH);
-
-  //   i2cSendMsg = "0";
-
-  //   digitalWrite(LED_BUILTIN, LOW);
-  // }
-
-  // i2cDataMsg = "";
-  // i2cDataMsgBuffer = "";
-  // i2cDataMsgBufferArray[0] = "";
-  // i2cDataMsgBufferArray[1] = "";
-  // i2cDataMsgBufferArray[2] = "";
 }
 
 #endif
