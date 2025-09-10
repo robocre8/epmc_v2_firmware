@@ -264,51 +264,47 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_ACC: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       readAcc(ax, ay, az);
       Serial.write((uint8_t*)&ax, sizeof(ax));
       Serial.write((uint8_t*)&ay, sizeof(ay));
       Serial.write((uint8_t*)&az, sizeof(az));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_ACC_RAW: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       readAccRaw(ax, ay, az);
       Serial.write((uint8_t*)&ax, sizeof(ax));
       Serial.write((uint8_t*)&ay, sizeof(ay));
       Serial.write((uint8_t*)&az, sizeof(az));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_ACC_OFF: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       readAccOffset(ax, ay, az);
       Serial.write((uint8_t*)&ax, sizeof(ax));
       Serial.write((uint8_t*)&ay, sizeof(ay));
       Serial.write((uint8_t*)&az, sizeof(az));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_ACC_VAR: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       readAccVariance(ax, ay, az);
       Serial.write((uint8_t*)&ax, sizeof(ax));
       Serial.write((uint8_t*)&ay, sizeof(ay));
       Serial.write((uint8_t*)&az, sizeof(az));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case WRITE_ACC_OFF: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       memcpy(&ax, &data[0], sizeof(float));
       memcpy(&ay, &data[4], sizeof(float));
       memcpy(&az, &data[8], sizeof(float));
@@ -319,7 +315,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case WRITE_ACC_VAR: {
-      float ax, ay, az, dummy=0.0;
+      float ax, ay, az;
       memcpy(&ax, &data[0], sizeof(float));
       memcpy(&ay, &data[4], sizeof(float));
       memcpy(&az, &data[8], sizeof(float));
@@ -330,51 +326,47 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_GYRO: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       readGyro(gx, gy, gz);
       Serial.write((uint8_t*)&gx, sizeof(gx));
       Serial.write((uint8_t*)&gy, sizeof(gy));
       Serial.write((uint8_t*)&gz, sizeof(gz));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_GYRO_RAW: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       readGyroRaw(gx, gy, gz);
       Serial.write((uint8_t*)&gx, sizeof(gx));
       Serial.write((uint8_t*)&gy, sizeof(gy));
       Serial.write((uint8_t*)&gz, sizeof(gz));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_GYRO_OFF: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       readGyroOffset(gx, gy, gz);
       Serial.write((uint8_t*)&gx, sizeof(gx));
       Serial.write((uint8_t*)&gy, sizeof(gy));
       Serial.write((uint8_t*)&gz, sizeof(gz));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case READ_GYRO_VAR: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       readGyroVariance(gx, gy, gz);
       Serial.write((uint8_t*)&gx, sizeof(gx));
       Serial.write((uint8_t*)&gy, sizeof(gy));
       Serial.write((uint8_t*)&gz, sizeof(gz));
-      Serial.write((uint8_t*)&dummy, sizeof(dummy));
       break;
     }
 
 
     case WRITE_GYRO_OFF: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       memcpy(&gx, &data[0], sizeof(float));
       memcpy(&gy, &data[4], sizeof(float));
       memcpy(&gz, &data[8], sizeof(float));
@@ -385,7 +377,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case WRITE_GYRO_VAR: {
-      float gx, gy, gz, dummy=0.0;
+      float gx, gy, gz;
       memcpy(&gx, &data[0], sizeof(float));
       memcpy(&gy, &data[4], sizeof(float));
       memcpy(&gz, &data[8], sizeof(float));

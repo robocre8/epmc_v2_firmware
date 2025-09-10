@@ -14,12 +14,19 @@ void clearSendMsgBuffer(){
   }
 }
 // Pack float response into txBuffer
-void prepareResponse(float res) {
+void prepareResponse1(float res) {
   sendMsgLength = 4;
   memcpy(&sendMsgBuffer[0], &res, sizeof(float));
 }
 
-void prepareResponse(float res0, float res1, float res2, float res3) {
+void prepareResponse3(float res0, float res1, float res2) {
+  sendMsgLength = 12;
+  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
+  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
+  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
+}
+
+void prepareResponse4(float res0, float res1, float res2, float res3) {
   sendMsgLength = 16;
   memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
   memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
@@ -40,7 +47,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&v2, &data[8], sizeof(float));
       memcpy(&v3, &data[12], sizeof(float));
       float res = writeSpeed(v0, v1, v2, v3);
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
@@ -52,7 +59,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&pwm2, &data[8], sizeof(float));
       memcpy(&pwm3, &data[12], sizeof(float));
       float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
@@ -60,7 +67,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     case READ_POS: {
       float pos0, pos1, pos2, pos3;
       readPos(pos0, pos1, pos2, pos3);
-      prepareResponse(pos0, pos1, pos2, pos3);
+      prepareResponse4(pos0, pos1, pos2, pos3);
       break;
     }
 
@@ -68,7 +75,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     case READ_VEL: {
       float v0, v1, v2, v3;
       readFilteredVel(v0, v1, v2, v3);
-      prepareResponse(v0, v1, v2, v3);
+      prepareResponse4(v0, v1, v2, v3);
       break;
     }
 
@@ -76,7 +83,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     case READ_UVEL: {
       float v0, v1, v2, v3;
       readUnfilteredVel(v0, v1, v2, v3);
-      prepareResponse(v0, v1, v2, v3);
+      prepareResponse4(v0, v1, v2, v3);
       break;
     }
 
@@ -85,13 +92,13 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       float value;
       memcpy(&value, &data[1], sizeof(float));
       float res = setCmdTimeout((int)value);
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
     case GET_CMD_TIMEOUT: {
       float res = getCmdTimeout();
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
@@ -101,21 +108,21 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       float value;
       memcpy(&value, &data[1], sizeof(float));
       float res = setPidModeFunc((int)pos, (int)value);
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
     case GET_PID_MODE: {
       uint8_t pos = data[0];
       float res = getPidModeFunc((int)pos);
-      prepareResponse(res);
+      prepareResponse1(res);
       break;
     }
 
 
     default: {
       float error = 0.0;
-      prepareResponse(error);
+      prepareResponse1(error);
       break;
     }
   }
@@ -179,7 +186,7 @@ void onReceive(int numBytes) {
           handleCommand(msgCmd, msgBuffer, msgLength);
         } else {
           float error = 0.0;
-          prepareResponse(error);
+          prepareResponse1(error);
         }
         readState = 0; // reset for next packet
         break;
