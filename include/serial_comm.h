@@ -387,6 +387,36 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     }
 
 
+    case READ_MOTOR_DATA: {
+      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
+      readPos(pos0, pos1, pos2, pos3);
+      readFilteredVel(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&pos0, sizeof(pos0));
+      Serial.write((uint8_t*)&pos1, sizeof(pos1));
+      Serial.write((uint8_t*)&pos2, sizeof(pos2));
+      Serial.write((uint8_t*)&pos3, sizeof(pos3));
+      Serial.write((uint8_t*)&v0, sizeof(v0));
+      Serial.write((uint8_t*)&v1, sizeof(v1));
+      Serial.write((uint8_t*)&v2, sizeof(v2));
+      Serial.write((uint8_t*)&v3, sizeof(v3));
+      break;
+    }
+
+
+    case READ_IMU_DATA: {
+      float ax, ay, az, gx, gy, gz;
+      readAcc(ax, ay, az);
+      readGyro(gx, gy, gz);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
+
     default: {
       float error = 0.0;
       Serial.write((uint8_t*)&error, sizeof(error));

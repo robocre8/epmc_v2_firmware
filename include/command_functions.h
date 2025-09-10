@@ -52,6 +52,8 @@ const uint8_t READ_GYRO_OFF = 0x26;
 const uint8_t READ_GYRO_VAR = 0x27;
 const uint8_t WRITE_GYRO_OFF = 0x28;
 const uint8_t WRITE_GYRO_VAR = 0x29;
+const uint8_t READ_MOTOR_DATA = 0x2A;
+const uint8_t READ_IMU_DATA = 0x2B;
 //---------------------------------------------------//
 
 //--------------- global variables -----------------//

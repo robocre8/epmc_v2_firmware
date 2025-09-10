@@ -34,6 +34,28 @@ void prepareResponse4(float res0, float res1, float res2, float res3) {
   memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
 }
 
+void prepareResponse6(float res0, float res1, float res2, float res3, float res4, float res5) {
+  sendMsgLength = 24;
+  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
+  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
+  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
+  memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
+  memcpy(&sendMsgBuffer[16], &res4, sizeof(float));
+  memcpy(&sendMsgBuffer[20], &res5, sizeof(float));
+}
+
+void prepareResponse8(float res0, float res1, float res2, float res3, float res4, float res5, float res6, float res7) {
+  sendMsgLength = 32;
+  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
+  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
+  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
+  memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
+  memcpy(&sendMsgBuffer[16], &res4, sizeof(float));
+  memcpy(&sendMsgBuffer[20], &res5, sizeof(float));
+  memcpy(&sendMsgBuffer[24], &res6, sizeof(float));
+  memcpy(&sendMsgBuffer[28], &res7, sizeof(float));
+}
+
 // Example command handler
 void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
@@ -63,6 +85,13 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       break;
     }
 
+    case READ_MOTOR_DATA: {
+      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
+      readPos(pos0, pos1, pos2, pos3);
+      readFilteredVel(v0, v1, v2, v3);
+      prepareResponse8(pos0, pos1, pos2, pos3, v0, v1, v2, v3);
+      break;
+    }
 
     case READ_POS: {
       float pos0, pos1, pos2, pos3;
@@ -118,7 +147,6 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       prepareResponse1(res);
       break;
     }
-
 
     default: {
       float error = 0.0;
