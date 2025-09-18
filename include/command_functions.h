@@ -64,9 +64,9 @@ int IN1_0 = 26, IN2_0 = 27, EN_0 = 12;
 // motor 1 H-Bridge Connection
 int IN1_1 = 18, IN2_1 = 19, EN_1 = 23;
 // motor 2 H-Bridge Connection
-int IN1_2 = 25, IN2_2 = 33, EN_2 = 32;
+int IN1_2 = 33, IN2_2 = 25, EN_2 = 32;
 // motor 3 H-Bridge Connection
-int IN1_3 = 5, IN2_3 = 17, EN_3 = 16;
+int IN1_3 = 17, IN2_3 = 5, EN_3 = 16;
 
 L298NMotorControl motor[num_of_motors] = {
   L298NMotorControl(IN1_0, IN2_0, EN_0), // motor 0
