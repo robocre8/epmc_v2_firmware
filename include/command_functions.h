@@ -60,13 +60,13 @@ const uint8_t READ_IMU_DATA = 0x2B;
 const int num_of_motors = 4;
 
 // motor 0 H-Bridge Connection
-int IN1_0 = 5, IN2_0 = 17, EN_0 = 16;
+int IN1_0 = 26, IN2_0 = 27, EN_0 = 12;
 // motor 1 H-Bridge Connection
-int IN1_1 = 19, IN2_1 = 18, EN_1 = 23;
+int IN1_1 = 18, IN2_1 = 19, EN_1 = 23;
 // motor 2 H-Bridge Connection
-int IN1_2 = 26, IN2_2 = 27, EN_2 = 12;
+int IN1_2 = 25, IN2_2 = 33, EN_2 = 32;
 // motor 3 H-Bridge Connection
-int IN1_3 = 33, IN2_3 = 25, EN_3 = 32;
+int IN1_3 = 5, IN2_3 = 17, EN_3 = 16;
 
 L298NMotorControl motor[num_of_motors] = {
   L298NMotorControl(IN1_0, IN2_0, EN_0), // motor 0
@@ -83,13 +83,13 @@ double enc_ppr[num_of_motors]={
 };
 
 // motor 0 encoder connection
-int enc0_clkPin = 15, enc0_dirPin = 4;
+int enc0_clkPin = 39, enc0_dirPin = 36;
 // motor 1 encoder connection
 int enc1_clkPin = 35, enc1_dirPin = 34;
 // motor 2 encoder connection
-int enc2_clkPin = 13, enc2_dirPin = 14;
+int enc2_clkPin = 14, enc2_dirPin = 13;
 // motor 3 encoder connection
-int enc3_clkPin = 39, enc3_dirPin = 36;
+int enc3_clkPin = 4, enc3_dirPin = 15;
 
 QuadEncoder encoder[num_of_motors] = {
   QuadEncoder(enc0_clkPin, enc0_dirPin, enc_ppr[0]), // motor 0 encoder connection
