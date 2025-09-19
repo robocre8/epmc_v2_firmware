@@ -1,288 +1,106 @@
 #include <Arduino.h>
-#include "command_functions.h"
-#include "serial_comm.h"
-#include "i2c_comm.h"
 
-//------------------------------------------------------------------------------//
-void IRAM_ATTR readEncoder0()
+// // motor 0 H-Bridge Connection
+// int IN1_0 = 6, IN2_0 = 7;
+// // motor 1 H-Bridge Connection
+// int IN1_1 = 0, IN2_1 = 5;
+// Define the control inputs
+#define MOT_A1_PIN 6
+#define MOT_A2_PIN 7
+#define MOT_B1_PIN 0
+#define MOT_B2_PIN 5
+
+void setup(void)
 {
-  unsigned long currentTickTime = micros();
+  // Set all the motor control inputs to OUTPUT
+  pinMode(MOT_A1_PIN, OUTPUT);
+  pinMode(MOT_A2_PIN, OUTPUT);
+  pinMode(MOT_B1_PIN, OUTPUT);
+  pinMode(MOT_B2_PIN, OUTPUT);
 
-  if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
-  {
-    encoder[0].tickCount -= 1;
-    encoder[0].dir = -1;
-  }
-  else
-  {
-    encoder[0].tickCount += 1;
-    encoder[0].dir = 1;
-  }
+  // Turn off motors - Initial state
+  digitalWrite(MOT_A1_PIN, LOW);
+  digitalWrite(MOT_A2_PIN, LOW);
+  digitalWrite(MOT_B1_PIN, LOW);
+  digitalWrite(MOT_B2_PIN, LOW);
 
-  unsigned long period = currentTickTime - encoder[0].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[0].periodPerTick = period;
-  }
-  encoder[0].oldTickTime = currentTickTime;
+  // Initialize the serial UART at 9600 baud
+  Serial.begin(9600);
 }
 
-void IRAM_ATTR readEncoder1()
+void loop(void)
 {
-  unsigned long currentTickTime = micros();
+  // Generate a fixed motion sequence to demonstrate the motor modes.
 
-  if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
-  {
-    encoder[1].tickCount -= 1;
-    encoder[1].dir = -1;
+  // Ramp speed up.
+  for (int i = 0; i < 11; i++) {
+    spin_and_wait(25*i, 25*i, 500);
   }
-  else
-  {
-    encoder[1].tickCount += 1;
-    encoder[1].dir = 1;
+  // Full speed forward.
+  spin_and_wait(255,255,2000);
+
+  // Ramp speed into full reverse.
+  for (int i = 0; i < 21 ; i++) {
+    spin_and_wait(255 - 25*i, 255 - 25*i, 500);
   }
 
-  unsigned long period = currentTickTime - encoder[1].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[1].periodPerTick = period;
-  }
-  encoder[1].oldTickTime = currentTickTime;
+  // Full speed reverse.
+  spin_and_wait(-255,-255,2000);
+
+  // Stop.
+  spin_and_wait(0,0,2000);
+
+  // Full speed, forward, turn, reverse, and turn for a two-wheeled base.
+  spin_and_wait(255, 255, 2000);
+  spin_and_wait(0, 0, 1000);
+  spin_and_wait(-255, 255, 2000);
+  spin_and_wait(0, 0, 1000);
+  spin_and_wait(-255, -255, 2000);
+  spin_and_wait(0, 0, 1000);
+  spin_and_wait(255, -255, 2000);
+  spin_and_wait(0, 0, 1000);
 }
 
-void IRAM_ATTR readEncoder2()
+/// Set the current on a motor channel using PWM and directional logic.
+///
+/// \param pwm    PWM duty cycle ranging from -255 full reverse to 255 full forward
+/// \param IN1_PIN  pin number xIN1 for the given channel
+/// \param IN2_PIN  pin number xIN2 for the given channel
+void set_motor_pwm(int pwm, int IN1_PIN, int IN2_PIN)
 {
-  unsigned long currentTickTime = micros();
+  if (pwm < 0) {  // reverse speeds
+    analogWrite(IN1_PIN, -pwm);
+    digitalWrite(IN2_PIN, LOW);
 
-  if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
-  {
-    encoder[2].tickCount -= 1;
-    encoder[2].dir = -1;
-  }
-  else
-  {
-    encoder[2].tickCount += 1;
-    encoder[2].dir = 1;
-  }
-
-  unsigned long period = currentTickTime - encoder[2].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[2].periodPerTick = period;
-  }
-  encoder[2].oldTickTime = currentTickTime;
-}
-
-void IRAM_ATTR readEncoder3()
-{
-  unsigned long currentTickTime = micros();
-
-  if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
-  {
-    encoder[3].tickCount -= 1;
-    encoder[3].dir = -1;
-  }
-  else
-  {
-    encoder[3].tickCount += 1;
-    encoder[3].dir = 1;
-  }
-
-  unsigned long period = currentTickTime - encoder[3].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[3].periodPerTick = period;
-  }
-  encoder[3].oldTickTime = currentTickTime;
-}
-//----------------------------------------------------------------------------------------------//
-
-void encoderInit()
-{
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    encoder[i].setPulsePerRev(enc_ppr[i]);
-  }
-
-  attachInterrupt(digitalPinToInterrupt(encoder[0].clkPin), readEncoder0, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[1].clkPin), readEncoder1, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[2].clkPin), readEncoder2, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[3].clkPin), readEncoder3, RISING);
-}
-
-void velFilterInit()
-{
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    velFilter[i].setCutOffFreq(cutOffFreq[i]);
+  } else { // stop or forward
+    digitalWrite(IN1_PIN, LOW);
+    analogWrite(IN2_PIN, pwm);
   }
 }
 
-void pidInit()
+/// Set the current on both motors.
+///
+/// \param pwm_A  motor A PWM, -255 to 255
+/// \param pwm_B  motor B PWM, -255 to 255
+void set_motor_currents(int pwm_A, int pwm_B)
 {
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    pidMotor[i].setParameters(kp[i], ki[i], kd[i], outMin, outMax);
-    pidMotor[i].begin();
-  }
+  set_motor_pwm(pwm_A, MOT_A1_PIN, MOT_A2_PIN);
+  set_motor_pwm(pwm_B, MOT_B1_PIN, MOT_B2_PIN);
+
+  // Print a status message to the console.
+  Serial.print("Set motor A PWM = ");
+  Serial.print(pwm_A);
+  Serial.print(" motor B PWM = ");
+  Serial.println(pwm_B);
 }
 
-//---------------------------------------------------------------------------------------------
-// Timing variables in microseconds
-// please do not adjust any of the values as it can affect important operations
-unsigned long serialLoopTime, serialLoopTimeInterval = 5;
-unsigned long pidTime, pidTimeInterval = 5;
-unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 500;
-unsigned long readImuTime, readImuSampleTime = 20;        // ms -> (1000/sampleTime) hz
-//---------------------------------------------------------------------------------------------
-
-
-void setup()
+/// Simple primitive for the motion sequence to set a speed and wait for an interval.
+///
+/// \param pwm_A  motor A PWM, -255 to 255
+/// \param pwm_B  motor B PWM, -255 to 255
+/// \param duration delay in milliseconds
+void spin_and_wait(int pwm_A, int pwm_B, int duration)
 {
-  loadStoredParams();
-
-  // Serial.begin(115200);
-  // Serial.begin(460800);
-  Serial.begin(921600);
-
-  if (useIMU){
-    Wire.begin();
-  }
-  else {
-    Wire.onReceive(onReceive);
-    Wire.onRequest(onRequest);
-    Wire.begin(i2cAddress);
-  }
-
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  analogWriteResolution(8); // 8 Bit resolution
-  analogWriteFrequency(1000); // 1kHz
-
-  encoderInit();
-  velFilterInit();
-  pidInit();
-
-  if (useIMU)
-    imu.begin();
-
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // Initialize timing markers
-  unsigned long now = millis();
-  serialLoopTime = now;
-  pidTime = now;
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    pidStopTime[i] = now;
-    cmdVelTimeout[i] = now;
-    isMotorCommanded[i] = 0;
-  }
-  readImuTime = now;
-}
-
-void loop()
-{
-  // Serial comm loop
-  recieve_and_send_data();
-  // if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  // {
-  //   recieve_and_send_data();
-  //   serialLoopTime = millis();
-  // }
-
-  // Sensor update
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    encoder[i].resetAngVelToZero();
-    unfilteredVel[i] = encoder[i].getAngVel();
-    filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
-  }
-
-  // PID control loop
-  if ((millis() - pidTime) >= pidTimeInterval)
-  {
-    for (int i = 0; i < num_of_motors; i += 1)
-    {
-      if (pidMode[i])
-      {
-        output[i] = pidMotor[i].compute(target[i], filteredVel[i]);
-        motor[i].sendPWM((int)output[i]);
-      }
-    }
-    pidTime = millis();
-  }
-
-  // check to see if motor has stopped
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    int target_int = (int)fabs(target[i]) * 1000;
-    if (target_int < 10 && pidMode[i])
-    {
-      if ((millis() - pidStopTime[i]) >= pidStopTimeInterval)
-      {
-        pidMotor[i].begin();
-        isMotorCommanded[i] = 0;
-        pidMode[i] = 0;
-        motor[i].sendPWM(0);
-        pidStopTime[i] = millis();
-      }
-    }
-    else
-    {
-      pidStopTime[i] = millis();
-    }
-  }
-
-  // command timeout
-  int cmdTimeout = (int)cmdVelTimeoutInterval;
-  if (cmdVelTimeoutInterval > 0)
-  {
-    for (int i = 0; i < num_of_motors; i += 1)
-    {
-      if (!isMotorCommanded[i])
-      {
-        cmdVelTimeout[i] = millis();
-      }
-      if (isMotorCommanded[i] && ((millis() - cmdVelTimeout[i]) >= cmdVelTimeoutInterval))
-      {
-        if(pidMode[i]){
-          target[i] = 0.000;
-        }
-        else {
-          motor[i].sendPWM(0);
-        }
-        isMotorCommanded[i] = 0;
-      }
-    }
-  }
-
-  if ((millis() - readImuTime) >= readImuSampleTime)
-  {
-    if(useIMU){
-      //-----READ ACC DATA (m/s^2) AND CALIBRATE-------------//
-      accRaw[0] = imu.readAccX_mps2(); // m/s²
-      accRaw[1] = imu.readAccY_mps2(); // m/s²
-      accRaw[2] = imu.readAccZ_mps2(); // m/s²
-
-      accCal[0] = accRaw[0] - accOff[0];
-      accCal[1] = accRaw[1] - accOff[1];
-      accCal[2] = accRaw[2] - accOff[2];
-      //------------------------------------------------------//
-
-      //-----READ GYRO DATA (rad/s) AND CALIBRATE------------//
-      gyroRaw[0] = imu.readGyroX_rps(); // rad/s
-      gyroRaw[1] = imu.readGyroY_rps(); // rad/s
-      gyroRaw[2] = imu.readGyroZ_rps(); // rad/s
-
-      gyroCal[0] = gyroRaw[0] - gyroOff[0];
-      gyroCal[1] = gyroRaw[1] - gyroOff[1];
-      gyroCal[2] = gyroRaw[2] - gyroOff[2];
-      //-----------------------------------------------------//
-
-      readImuTime = millis(); 
-    }
-  }
+  set_motor_currents(pwm_A, pwm_B);
+  delay(duration);
 }
