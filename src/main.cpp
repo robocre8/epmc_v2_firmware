@@ -176,12 +176,12 @@ void setup()
 void loop()
 {
   // Serial comm loop
-  // recieve_and_send_data();
-  if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  {
-    recieve_and_send_data();
-    serialLoopTime = millis();
-  }
+  recieve_and_send_data();
+  // if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
+  // {
+  //   recieve_and_send_data();
+  //   serialLoopTime = millis();
+  // }
 
   // Sensor update
   for (int i = 0; i < num_of_motors; i += 1)
