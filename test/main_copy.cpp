@@ -133,7 +133,6 @@ void pidInit()
 unsigned long serialLoopTime, serialLoopTimeInterval = 5;
 unsigned long pidTime, pidTimeInterval = 5;
 unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 500;
-unsigned long readImuTime, readImuSampleTime = 20;        // ms -> (1000/sampleTime) hz
 //---------------------------------------------------------------------------------------------
 
 
@@ -145,14 +144,9 @@ void setup()
   // Serial.begin(460800);
   Serial.begin(921600);
 
-  if (useIMU){
-    Wire.begin();
-  }
-  else {
-    Wire.onReceive(onReceive);
-    Wire.onRequest(onRequest);
-    Wire.begin(i2cAddress);
-  }
+  Wire.onReceive(onReceive);
+  Wire.onRequest(onRequest);
+  Wire.begin(i2cAddress);
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -162,9 +156,6 @@ void setup()
   encoderInit();
   velFilterInit();
   pidInit();
-
-  if (useIMU)
-    imu.begin();
 
   digitalWrite(LED_BUILTIN, HIGH);
   delay(1000);
@@ -180,18 +171,17 @@ void setup()
     cmdVelTimeout[i] = now;
     isMotorCommanded[i] = 0;
   }
-  readImuTime = now;
 }
 
 void loop()
 {
   // Serial comm loop
-  recieve_and_send_data();
-  // if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  // {
-  //   recieve_and_send_data();
-  //   serialLoopTime = millis();
-  // }
+  // recieve_and_send_data();
+  if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
+  {
+    recieve_and_send_data();
+    serialLoopTime = millis();
+  }
 
   // Sensor update
   for (int i = 0; i < num_of_motors; i += 1)
@@ -256,33 +246,6 @@ void loop()
         }
         isMotorCommanded[i] = 0;
       }
-    }
-  }
-
-  if ((millis() - readImuTime) >= readImuSampleTime)
-  {
-    if(useIMU){
-      //-----READ ACC DATA (m/s^2) AND CALIBRATE-------------//
-      accRaw[0] = imu.readAccX_mps2(); // m/s²
-      accRaw[1] = imu.readAccY_mps2(); // m/s²
-      accRaw[2] = imu.readAccZ_mps2(); // m/s²
-
-      accCal[0] = accRaw[0] - accOff[0];
-      accCal[1] = accRaw[1] - accOff[1];
-      accCal[2] = accRaw[2] - accOff[2];
-      //------------------------------------------------------//
-
-      //-----READ GYRO DATA (rad/s) AND CALIBRATE------------//
-      gyroRaw[0] = imu.readGyroX_rps(); // rad/s
-      gyroRaw[1] = imu.readGyroY_rps(); // rad/s
-      gyroRaw[2] = imu.readGyroZ_rps(); // rad/s
-
-      gyroCal[0] = gyroRaw[0] - gyroOff[0];
-      gyroCal[1] = gyroRaw[1] - gyroOff[1];
-      gyroCal[2] = gyroRaw[2] - gyroOff[2];
-      //-----------------------------------------------------//
-
-      readImuTime = millis(); 
     }
   }
 }
