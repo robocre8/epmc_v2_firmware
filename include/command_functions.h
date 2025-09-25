@@ -38,6 +38,7 @@ const uint8_t SET_I2C_ADDR = 0x19;
 const uint8_t GET_I2C_ADDR = 0x1A;
 const uint8_t RESET_PARAMS = 0x1B;
 const uint8_t READ_MOTOR_DATA = 0x2A;
+const uint8_t CLEAR_DATA_BUFFER = 0x2B;
 //---------------------------------------------------//
 
 //--------------- global variables -----------------//
@@ -565,6 +566,31 @@ float getCmdTimeout()
 }
 
 
+float clearDataBuffer()
+{
+  for (int i = 0; i < num_of_motors; i += 1)
+  {
+    encoder[i].tickCount = 0;
+    filteredVel[i] = 0.0;
+    unfilteredVel[i] = 0.0;
+    target[i] = 0.0;
+  }
+  return 1.0;
+}
+
+
+float triggerResetParams()
+{
+  storage.begin(params_ns, false);
+  firstLoad = true;
+  storage.putBool(firstLoad_key, firstLoad);
+  storage.end();
+  // reload to reset
+  loadStoredParams();
+  return 1.0;
+}
+
+
 
 
 #include "i2c_comm.h"
@@ -587,19 +613,6 @@ float setI2cAddress(int address)
 float getI2cAddress()
 {
   return (float)i2cAddress;
-}
-
-
-
-float triggerResetParams()
-{
-  storage.begin(params_ns, false);
-  firstLoad = true;
-  storage.putBool(firstLoad_key, firstLoad);
-  storage.end();
-  // reload to reset
-  loadStoredParams();
-  return 1.0;
 }
 //-------------------------------------------------------------------//
 

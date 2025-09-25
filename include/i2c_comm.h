@@ -148,6 +148,12 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       break;
     }
 
+    case CLEAR_DATA_BUFFER: {
+      float res = clearDataBuffer();
+      prepareResponse1(res);
+      break;
+    }
+
     default: {
       float error = 0.0;
       prepareResponse1(error);

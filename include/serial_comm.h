@@ -262,6 +262,12 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       Serial.write((uint8_t*)&v3, sizeof(v3));
       break;
     }
+
+    case CLEAR_DATA_BUFFER: {
+      float res = clearDataBuffer();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
     
 
     default: {
