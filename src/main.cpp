@@ -132,7 +132,7 @@ void pidInit()
 // please do not adjust any of the values as it can affect important operations
 unsigned long serialLoopTime, serialLoopTimeInterval = 5;
 unsigned long pidTime, pidTimeInterval = 5;
-unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 500;
+unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 1000;
 //---------------------------------------------------------------------------------------------
 
 
