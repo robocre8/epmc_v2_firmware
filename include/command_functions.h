@@ -7,6 +7,8 @@
 #include "encoder_setup.h"
 #include "adaptive_low_pass_filter.h"
 #include "simple_pid_control.h"
+#include "mpu6050.h"
+#include "madgwick_filter.h"
 
 //------------ Communication Command IDs --------------//
 const uint8_t START_BYTE = 0xAA;
@@ -37,8 +39,29 @@ const uint8_t GET_CMD_TIMEOUT = 0x18;
 const uint8_t SET_I2C_ADDR = 0x19;
 const uint8_t GET_I2C_ADDR = 0x1A;
 const uint8_t RESET_PARAMS = 0x1B;
+const uint8_t SET_USE_IMU = 0x1C;
+const uint8_t GET_USE_IMU = 0x1D;
+const uint8_t READ_ACC = 0x1E;
+const uint8_t READ_ACC_RAW = 0x1F;
+const uint8_t READ_ACC_OFF = 0x20;
+const uint8_t READ_ACC_VAR = 0x21;
+const uint8_t WRITE_ACC_OFF = 0x22;
+const uint8_t WRITE_ACC_VAR = 0x23;
+const uint8_t READ_GYRO = 0x24;
+const uint8_t READ_GYRO_RAW = 0x25;
+const uint8_t READ_GYRO_OFF = 0x26;
+const uint8_t READ_GYRO_VAR = 0x27;
+const uint8_t WRITE_GYRO_OFF = 0x28;
+const uint8_t WRITE_GYRO_VAR = 0x29;
 const uint8_t READ_MOTOR_DATA = 0x2A;
-const uint8_t CLEAR_DATA_BUFFER = 0x2B;
+const uint8_t READ_IMU_DATA = 0x2B;
+const uint8_t CLEAR_DATA_BUFFER = 0x2C;
+const uint8_t READ_RPY = 0x2D;
+const uint8_t READ_RPY_VAR = 0x2E;
+const uint8_t WRITE_RPY_VAR = 0x2F;
+const uint8_t READ_YAW_WITH_DRIFT = 0x30;
+const uint8_t READ_YAW_VEL_DRIFT_BIAS = 0x31;
+const uint8_t WRITE_YAW_VEL_DRIFT_BIAS = 0x32;
 //---------------------------------------------------//
 
 //--------------- global variables -----------------//
@@ -201,6 +224,83 @@ bool firstLoad = false;
 //-------------------------------------------------//
 
 
+//-------------- IMU MPU6050 ---------------------//
+
+float yawVelDriftBias = 0.0;
+float yawAccumOffset = 0.0;
+float randomGainMultiplier = 0.0;
+
+float roll, pitch, yaw;
+
+float accOff[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float accVar[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float accRaw[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float accCal[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float gyroOff[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float gyroVar[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float gyroRaw[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float gyroCal[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float rpy[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float rpyVar[3] = {
+  0.0,
+  0.0,
+  0.0
+};
+
+float IMU_filterGain = 0.1;
+
+int useIMU = 0;
+
+MPU6050 imu;
+MadgwickFilter madgwickFilter;
+//------------------------------------------------//
+
+
 //--------------- storage variables -----------------//
 Preferences storage;
 
@@ -253,6 +353,40 @@ const char * maxVel_key[num_of_motors] = {
   "maxVel3"
 };
 
+const char * rpyVar_key[3] = {
+  "rpyVar0",
+  "rpyVar1",
+  "rpyVar2",
+};
+
+const char * accOff_key[3] = {
+  "accOff0",
+  "accOff1",
+  "accOff2",
+};
+
+const char * accVar_key[3] = {
+  "accVar0",
+  "accVar1",
+  "accVar2",
+};
+
+const char * gyroOff_key[3] = {
+  "gyroOff0",
+  "gyroOff1",
+  "gyroOff2",
+};
+
+const char * gyroVar_key[3] = {
+  "gyroVar0",
+  "gyroVar1",
+  "gyroVar2",
+};
+
+const char * useIMU_key = "useIMU";
+
+const char * yawVelDriftBias_key= "yawVelDriftBias";
+
 const char * i2cAddress_key = "i2cAddress";
 
 const char * firstLoad_key = "firstLoad";
@@ -271,6 +405,17 @@ void resetParamsInStorage(){
     storage.putInt(rdir_key[i], 1);
     storage.putDouble(maxVel_key[i], 10.0);
   }
+
+  for (int i=0; i<3; i+=1){
+    storage.putFloat(accOff_key[i], 0.0);
+    storage.putFloat(accVar_key[i], 0.0);
+    storage.putFloat(gyroOff_key[i], 0.0);
+    storage.putFloat(gyroVar_key[i], 0.0);
+    storage.putFloat(rpyVar_key[i], 0.0);
+  }
+  storage.putInt(useIMU_key, 0);
+  storage.putFloat(yawVelDriftBias_key, 0.0);
+
   storage.putUChar(i2cAddress_key, 0x55);
 
   storage.end();
@@ -306,7 +451,19 @@ void loadStoredParams(){
     rdir[i] = storage.getInt(rdir_key[i], 1);
     maxVel[i] = storage.getDouble(maxVel_key[i], 10.0);
   }
+
+  for (int i=0; i<3; i+=1){
+    accOff[i] = storage.getFloat(accOff_key[i], 0.0);
+    accVar[i] = storage.getFloat(accVar_key[i], 0.0);
+    gyroOff[i] = storage.getFloat(gyroOff_key[i], 0.0);
+    gyroVar[i] = storage.getFloat(gyroVar_key[i], 0.0);
+    rpyVar[i] = storage.getFloat(rpyVar_key[i], 0.0);
+  }
+  useIMU = storage.getInt(useIMU_key, 0);
+  yawVelDriftBias = storage.getFloat(yawVelDriftBias_key, 0.0);
+
   i2cAddress = storage.getUChar(i2cAddress_key, 0x55);
+  
 
   storage.end();
 }
@@ -566,6 +723,186 @@ float getCmdTimeout()
 }
 
 
+//------------------------------------------------------------------//
+float setUseIMU(int val)
+{
+  if((val < 0) || (val > 1)){
+    return 0.0;
+  }
+  storage.begin(params_ns, false);
+  storage.putInt(useIMU_key, val);
+  storage.end();
+
+  return 1.0;
+}
+float getUseIMU()
+{
+  return (float)useIMU;
+}
+
+
+void readRPY(float &r, float &p, float &y)
+{
+  r = rpy[0];
+  p = rpy[1];
+  y = rpy[2];
+}
+
+
+void readRPYVariance(float &r, float &p, float &y)
+{
+  r = rpyVar[0];
+  p = rpyVar[1];
+  y = rpyVar[2];
+}
+float writeRPYVariance(float r, float p, float y) {
+  float rpyVal[3] = {r, p, y};
+  for (int i = 0; i < 3; i += 1)
+  {
+    rpyVar[i] = rpyVal[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(rpyVar_key[i], rpyVar[i]);
+    storage.end();
+  }
+
+  return 1.0;
+}
+
+
+void readAcc(float &ax, float &ay, float &az)
+{
+  ax = accCal[0];
+  ay = accCal[1];
+  az = accCal[2];
+}
+
+
+void readAccRaw(float &ax, float &ay, float &az)
+{
+  ax = accRaw[0];
+  ay = accRaw[1];
+  az = accRaw[2];
+}
+
+
+void readAccOffset(float &ax, float &ay, float &az)
+{
+  ax = accOff[0];
+  ay = accOff[1];
+  az = accOff[2];
+}
+float writeAccOffset(float ax, float ay, float az) {
+  float accVal[3] = {ax, ay, az};
+  for (int i = 0; i < 3; i += 1)
+  {
+    accOff[i] = accVal[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(accOff_key[i], accOff[i]);
+    storage.end();
+  }
+
+  return 1.0;
+}
+
+
+void readAccVariance(float &ax, float &ay, float &az)
+{
+  ax = accVar[0];
+  ay = accVar[1];
+  az = accVar[2];
+}
+float writeAccVariance(float ax, float ay, float az) {
+  float accVal[3] = {ax, ay, az};
+  for (int i = 0; i < 3; i += 1)
+  {
+    accVar[i] = accVal[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(accVar_key[i], accVar[i]);
+    storage.end();
+  }
+
+  return 1.0;
+}
+
+
+void readGyro(float &gx, float &gy, float &gz)
+{
+  gx = gyroCal[0];
+  gy = gyroCal[1];
+  gz = gyroCal[2];
+}
+
+
+void readGyroRaw(float &gx, float &gy, float &gz)
+{
+  gx = gyroRaw[0];
+  gy = gyroRaw[1];
+  gz = gyroRaw[2];
+}
+
+
+void readGyroOffset(float &gx, float &gy, float &gz)
+{
+  gx = gyroOff[0];
+  gy = gyroOff[1];
+  gz = gyroOff[2];
+}
+float writeGyroOffset(float gx, float gy, float gz) {
+  float gyroVal[3] = {gx, gy, gz};
+  for (int i = 0; i < 3; i += 1)
+  {
+    gyroOff[i] = gyroVal[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(gyroOff_key[i], gyroOff[i]);
+    storage.end();
+  }
+
+  return 1.0;
+}
+
+
+void readGyroVariance(float &gx, float &gy, float &gz)
+{
+  gx = gyroVar[0];
+  gy = gyroVar[1];
+  gz = gyroVar[2];
+}
+float writeGyroVariance(float gx, float gy, float gz) {
+  float gyroVal[3] = {gx, gy, gz};
+  for (int i = 0; i < 3; i += 1)
+  {
+    gyroVar[i] = gyroVal[i];
+    storage.begin(params_ns, false);
+    storage.putFloat(gyroVar_key[i], gyroVar[i]);
+    storage.end();
+  }
+
+  return 1.0;
+}
+
+
+float readYawWithDrift()
+{
+  return (float)yaw;
+}
+
+
+float readYawVelDriftBias()
+{
+  return (float)yawVelDriftBias;
+}
+float writeYawVelDriftBias(float val) {
+
+  yawVelDriftBias = val;
+  storage.begin(params_ns, false);
+  storage.putFloat(yawVelDriftBias_key, yawVelDriftBias);
+  storage.end();
+
+  return 1.0;
+}
+//-------------------------------------------------------------------//
+
+
 float clearDataBuffer()
 {
   for (int i = 0; i < num_of_motors; i += 1)
@@ -575,6 +912,20 @@ float clearDataBuffer()
     unfilteredVel[i] = 0.0;
     target[i] = 0.0;
   }
+
+  for (int i = 0; i < 3; i += 1)
+  {
+    gyroCal[i] = 0.0;
+    accCal[i] = 0.0;
+    rpy[i] = 0.0;
+  }
+
+  yawAccumOffset = 0.0;
+  randomGainMultiplier = 0.0;
+
+  madgwickFilter.init();
+  madgwickFilter.setAlgorithmGain(IMU_filterGain);
+  madgwickFilter.setWorldFrameId(0); // 0 - NWU, 1 - ENU, 2 - NED (I'm using NWU reference frame)
   return 1.0;
 }
 

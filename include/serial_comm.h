@@ -226,6 +226,22 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     }
 
 
+    case READ_MOTOR_DATA: {
+      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
+      readPos(pos0, pos1, pos2, pos3);
+      readFilteredVel(v0, v1, v2, v3);
+      Serial.write((uint8_t*)&pos0, sizeof(pos0));
+      Serial.write((uint8_t*)&pos1, sizeof(pos1));
+      Serial.write((uint8_t*)&pos2, sizeof(pos2));
+      Serial.write((uint8_t*)&pos3, sizeof(pos3));
+      Serial.write((uint8_t*)&v0, sizeof(v0));
+      Serial.write((uint8_t*)&v1, sizeof(v1));
+      Serial.write((uint8_t*)&v2, sizeof(v2));
+      Serial.write((uint8_t*)&v3, sizeof(v3));
+      break;
+    }
+
+
     case SET_I2C_ADDR: {
       float value;
       memcpy(&value, &data[1], sizeof(float));
@@ -248,20 +264,213 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     }
 
 
-    case READ_MOTOR_DATA: {
-      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
-      readPos(pos0, pos1, pos2, pos3);
-      readFilteredVel(v0, v1, v2, v3);
-      Serial.write((uint8_t*)&pos0, sizeof(pos0));
-      Serial.write((uint8_t*)&pos1, sizeof(pos1));
-      Serial.write((uint8_t*)&pos2, sizeof(pos2));
-      Serial.write((uint8_t*)&pos3, sizeof(pos3));
-      Serial.write((uint8_t*)&v0, sizeof(v0));
-      Serial.write((uint8_t*)&v1, sizeof(v1));
-      Serial.write((uint8_t*)&v2, sizeof(v2));
-      Serial.write((uint8_t*)&v3, sizeof(v3));
+    case SET_USE_IMU: {
+      float value;
+      memcpy(&value, &data[1], sizeof(float));
+      float res = setUseIMU((int)value);
+      Serial.write((uint8_t*)&res, sizeof(res));
       break;
     }
+    case GET_USE_IMU: {
+      float res = getUseIMU();
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_RPY: {
+      float r, p, y;
+      readRPY(r, p, y);
+      Serial.write((uint8_t*)&r, sizeof(r));
+      Serial.write((uint8_t*)&p, sizeof(p));
+      Serial.write((uint8_t*)&y, sizeof(y));
+      break;
+    }
+
+
+    case READ_RPY_VAR: {
+      float r, p, y;
+      readRPYVariance(r, p, y);
+      Serial.write((uint8_t*)&r, sizeof(r));
+      Serial.write((uint8_t*)&p, sizeof(p));
+      Serial.write((uint8_t*)&y, sizeof(y));
+      break;
+    }
+
+
+    case WRITE_RPY_VAR: {
+      float r, p, y;
+      memcpy(&r, &data[0], sizeof(float));
+      memcpy(&p, &data[4], sizeof(float));
+      memcpy(&y, &data[8], sizeof(float));
+      float res = writeAccOffset(r, p, y);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+    
+
+    case READ_ACC: {
+      float ax, ay, az;
+      readAcc(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      break;
+    }
+
+
+    case READ_ACC_RAW: {
+      float ax, ay, az;
+      readAccRaw(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      break;
+    }
+
+
+    case READ_ACC_OFF: {
+      float ax, ay, az;
+      readAccOffset(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      break;
+    }
+
+
+    case READ_ACC_VAR: {
+      float ax, ay, az;
+      readAccVariance(ax, ay, az);
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      break;
+    }
+
+
+    case WRITE_ACC_OFF: {
+      float ax, ay, az;
+      memcpy(&ax, &data[0], sizeof(float));
+      memcpy(&ay, &data[4], sizeof(float));
+      memcpy(&az, &data[8], sizeof(float));
+      float res = writeAccOffset(ax, ay, az);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case WRITE_ACC_VAR: {
+      float ax, ay, az;
+      memcpy(&ax, &data[0], sizeof(float));
+      memcpy(&ay, &data[4], sizeof(float));
+      memcpy(&az, &data[8], sizeof(float));
+      float res = writeAccVariance(ax, ay, az);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_GYRO: {
+      float gx, gy, gz;
+      readGyro(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
+
+    case READ_GYRO_RAW: {
+      float gx, gy, gz;
+      readGyroRaw(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
+
+    case READ_GYRO_OFF: {
+      float gx, gy, gz;
+      readGyroOffset(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
+
+    case READ_GYRO_VAR: {
+      float gx, gy, gz;
+      readGyroVariance(gx, gy, gz);
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
+
+    case WRITE_GYRO_OFF: {
+      float gx, gy, gz;
+      memcpy(&gx, &data[0], sizeof(float));
+      memcpy(&gy, &data[4], sizeof(float));
+      memcpy(&gz, &data[8], sizeof(float));
+      float res = writeGyroOffset(gx, gy, gz);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case WRITE_GYRO_VAR: {
+      float gx, gy, gz;
+      memcpy(&gx, &data[0], sizeof(float));
+      memcpy(&gy, &data[4], sizeof(float));
+      memcpy(&gz, &data[8], sizeof(float));
+      float res = writeGyroVariance(gx, gy, gz);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_YAW_WITH_DRIFT: {
+      float val = readYawWithDrift();
+      Serial.write((uint8_t*)&val, sizeof(val));
+      break;
+    }
+
+
+    case READ_YAW_VEL_DRIFT_BIAS: {
+      float val = readYawVelDriftBias();
+      Serial.write((uint8_t*)&val, sizeof(val));
+      break;
+    }
+    case WRITE_YAW_VEL_DRIFT_BIAS: {
+      float val;
+      memcpy(&val, &data[1], sizeof(float));
+      float res = writeYawVelDriftBias(val);
+      Serial.write((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+
+    case READ_IMU_DATA: {
+      float r, p, y, ax, ay, az, gx, gy, gz;
+      readRPY(r, p, y);
+      readAcc(ax, ay, az);
+      readGyro(gx, gy, gz);
+      Serial.write((uint8_t*)&r, sizeof(r));
+      Serial.write((uint8_t*)&p, sizeof(p));
+      Serial.write((uint8_t*)&y, sizeof(y));
+      Serial.write((uint8_t*)&ax, sizeof(ax));
+      Serial.write((uint8_t*)&ay, sizeof(ay));
+      Serial.write((uint8_t*)&az, sizeof(az));
+      Serial.write((uint8_t*)&gx, sizeof(gx));
+      Serial.write((uint8_t*)&gy, sizeof(gy));
+      Serial.write((uint8_t*)&gz, sizeof(gz));
+      break;
+    }
+
 
     case CLEAR_DATA_BUFFER: {
       float res = clearDataBuffer();

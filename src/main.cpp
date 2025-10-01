@@ -133,6 +133,7 @@ void pidInit()
 unsigned long serialLoopTime, serialLoopTimeInterval = 5;
 unsigned long pidTime, pidTimeInterval = 5;
 unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 1000;
+unsigned long readImuTime, readImuSampleTime = 20;        // ms -> (1000/sampleTime) hz
 //---------------------------------------------------------------------------------------------
 
 
@@ -144,9 +145,14 @@ void setup()
   // Serial.begin(460800);
   Serial.begin(921600);
 
-  Wire.onReceive(onReceive);
-  Wire.onRequest(onRequest);
-  Wire.begin(i2cAddress);
+  if (useIMU){
+    Wire.begin();
+  }
+  else {
+    Wire.onReceive(onReceive);
+    Wire.onRequest(onRequest);
+    Wire.begin(i2cAddress);
+  }
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -156,6 +162,9 @@ void setup()
   encoderInit();
   velFilterInit();
   pidInit();
+
+  if (useIMU)
+    imu.begin();
 
   digitalWrite(LED_BUILTIN, HIGH);
   delay(1000);
@@ -171,6 +180,7 @@ void setup()
     cmdVelTimeout[i] = now;
     isMotorCommanded[i] = 0;
   }
+  readImuTime = now;
 }
 
 void loop()
@@ -247,5 +257,51 @@ void loop()
         isMotorCommanded[i] = 0;
       }
     }
+  }
+
+  // read IMU
+  if ((millis() - readImuTime) >= readImuSampleTime)
+  {
+    if(useIMU){
+      //------------READ ACC DATA (m/s^2) AND CALIBRATE---------------//
+      accRaw[0] = imu.readAccX_mps2(); // m/s²
+      accRaw[1] = imu.readAccY_mps2(); // m/s²
+      accRaw[2] = imu.readAccZ_mps2(); // m/s²
+
+      accCal[0] = accRaw[0] - accOff[0];
+      accCal[1] = accRaw[1] - accOff[1];
+      accCal[2] = accRaw[2] - accOff[2];
+      //------------------------------------------------------//
+
+      //-----------READ GYRO DATA (rad/s) AND CALIBRATE---------------//
+      gyroRaw[0] = imu.readGyroX_rps(); // rad/s
+      gyroRaw[1] = imu.readGyroY_rps(); // rad/s
+      gyroRaw[2] = imu.readGyroZ_rps(); // rad/s
+
+      gyroCal[0] = gyroRaw[0] - gyroOff[0];
+      gyroCal[1] = gyroRaw[1] - gyroOff[1];
+      gyroCal[2] = gyroRaw[2] - gyroOff[2];
+      //-----------------------------------------------------//
+
+      //-------- APPLY MADWICK FILTER IN NWU FRAME ----------//
+      madgwickFilter.madgwickAHRSupdateIMU(gyroCal[0], gyroCal[1], gyroCal[2], accCal[0], accCal[1], accCal[2]);
+
+      madgwickFilter.getOrientationRPY(roll, pitch, yaw);
+
+      // randomSeed(millis());
+      // int randGain = random(9, 11);
+      // if (randGain < 10) randGain = -10;
+      // randomGainMultiplier = (float)randGain/10.0;
+      randomGainMultiplier = 1.0;
+
+      if ((int)(yawVelDriftBias*100000.0) > 0) {
+        yawAccumOffset += ((yawVelDriftBias*(float)readImuSampleTime*randomGainMultiplier)/1000.0);
+        rpy[0] = roll; rpy[1] = pitch; rpy[2] = yaw - yawAccumOffset;
+      } else {
+        rpy[0] = roll; rpy[1] = pitch; rpy[2] = yaw;
+      }
+      // ----------------------------------------------------//
+    }
+    readImuTime = millis(); 
   }
 }
