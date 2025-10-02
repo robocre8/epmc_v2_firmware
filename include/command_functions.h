@@ -38,7 +38,7 @@ const uint8_t SET_I2C_ADDR = 0x19;
 const uint8_t GET_I2C_ADDR = 0x1A;
 const uint8_t RESET_PARAMS = 0x1B;
 const uint8_t READ_MOTOR_DATA = 0x2A;
-const uint8_t CLEAR_DATA_BUFFER = 0x2B;
+const uint8_t CLEAR_DATA_BUFFER = 0x2C;
 //---------------------------------------------------//
 
 //--------------- global variables -----------------//
