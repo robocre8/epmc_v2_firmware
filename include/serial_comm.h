@@ -14,8 +14,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&v1, &data[4], sizeof(float));
       memcpy(&v2, &data[8], sizeof(float));
       memcpy(&v3, &data[12], sizeof(float));
-      float res = writeSpeed(v0, v1, v2, v3);
-      Serial.write((uint8_t*)&res, sizeof(res));
+      writeSpeed(v0, v1, v2, v3);
       break;
     }
 
@@ -26,8 +25,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&pwm1, &data[4], sizeof(float));
       memcpy(&pwm2, &data[8], sizeof(float));
       memcpy(&pwm3, &data[12], sizeof(float));
-      float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
-      Serial.write((uint8_t*)&res, sizeof(res));
+      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
       break;
     }
 

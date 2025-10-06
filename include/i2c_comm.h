@@ -68,8 +68,8 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&v1, &data[4], sizeof(float));
       memcpy(&v2, &data[8], sizeof(float));
       memcpy(&v3, &data[12], sizeof(float));
-      float res = writeSpeed(v0, v1, v2, v3);
-      prepareResponse1(res);
+      writeSpeed(v0, v1, v2, v3);
+      gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
       break;
     }
 
@@ -80,8 +80,8 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&pwm1, &data[4], sizeof(float));
       memcpy(&pwm2, &data[8], sizeof(float));
       memcpy(&pwm3, &data[12], sizeof(float));
-      float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
-      prepareResponse1(res);
+      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
       break;
     }
 
