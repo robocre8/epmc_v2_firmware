@@ -140,9 +140,9 @@ void setup()
 {
   loadStoredParams();
 
-  // Serial.begin(115200);
+  Serial.begin(115200);
   // Serial.begin(460800);
-  Serial.begin(921600);
+  // Serial.begin(921600);
 
   Wire.onReceive(onReceive);
   Wire.onRequest(onRequest);
