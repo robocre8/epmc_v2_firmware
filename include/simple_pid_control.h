@@ -18,7 +18,7 @@ class SimplePID {
 
   private:
     double error, errorPrev, errorInt, errorDot;
-    unsigned long lastTime = 0;
+    uint64_t lastTime = 0;
     double kp, ki, kd;
     double outMax, outMin, outSat, outUnsat;
     bool integratorIsOn;

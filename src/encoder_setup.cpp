@@ -12,8 +12,8 @@ QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, double ppr)
   tickCount = 0;
   prevTickCount = 0;
   dir = 1;
-  setZeroPeriodPerTick(1.0);
-  oldTickTime = micros();
+  setZeroPeriodPerTick(10);
+  oldTickTime = esp_timer_get_time();
 }
 
 void QuadEncoder::setPulsePerRev(double ppr)
@@ -35,7 +35,7 @@ double QuadEncoder::getAngVel()
 
   portENTER_CRITICAL(&encoderMux);
   double direction = (double)dir;
-  unsigned long dt = periodPerTick;
+  uint64_t dt = periodPerTick;
   portEXIT_CRITICAL(&encoderMux);
 
   if (dt == 0) {
@@ -49,7 +49,7 @@ double QuadEncoder::getAngVel()
 
 void QuadEncoder::resetAngVelToZero()
 {
-  unsigned long t = micros();
+  uint64_t t = esp_timer_get_time();
   
   portENTER_CRITICAL(&encoderMux);
   if ((t - oldTickTime) >= stopPeriodPerTick)
@@ -59,7 +59,7 @@ void QuadEncoder::resetAngVelToZero()
   portEXIT_CRITICAL(&encoderMux);
 }
 
-void QuadEncoder::setZeroPeriodPerTick(double zeroVel)
+void QuadEncoder::setZeroPeriodPerTick(uint64_t stop_timer_ms)
 {
-  stopPeriodPerTick = (unsigned long)((4.0 * PI * 1e6)/(pulsePerRev*zeroVel));
+  stopPeriodPerTick = 1000*stop_timer_ms;
 }

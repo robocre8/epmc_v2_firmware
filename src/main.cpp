@@ -2,11 +2,12 @@
 #include "command_functions.h"
 #include "serial_comm.h"
 #include "i2c_comm.h"
+#include "driver/periph_ctrl.h"
 
 //------------------------------------------------------------------------------//
 void IRAM_ATTR readEncoder0()
 {
-  unsigned long currentTickTime = micros();
+  uint64_t currentTickTime = esp_timer_get_time();
 
   if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
   {
@@ -19,17 +20,14 @@ void IRAM_ATTR readEncoder0()
     encoder[0].dir = 1;
   }
 
-  unsigned long period = currentTickTime - encoder[0].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[0].periodPerTick = period;
-  }
+  uint64_t period = currentTickTime - encoder[0].oldTickTime;
+  encoder[0].periodPerTick = period;
   encoder[0].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder1()
 {
-  unsigned long currentTickTime = micros();
+  uint64_t currentTickTime = esp_timer_get_time();
 
   if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
   {
@@ -42,17 +40,14 @@ void IRAM_ATTR readEncoder1()
     encoder[1].dir = 1;
   }
 
-  unsigned long period = currentTickTime - encoder[1].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[1].periodPerTick = period;
-  }
+  uint64_t period = currentTickTime - encoder[1].oldTickTime;
+  encoder[1].periodPerTick = period;
   encoder[1].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder2()
 {
-  unsigned long currentTickTime = micros();
+  uint64_t currentTickTime = esp_timer_get_time();
 
   if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
   {
@@ -65,17 +60,14 @@ void IRAM_ATTR readEncoder2()
     encoder[2].dir = 1;
   }
 
-  unsigned long period = currentTickTime - encoder[2].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[2].periodPerTick = period;
-  }
+  uint64_t period = currentTickTime - encoder[2].oldTickTime;
+  encoder[2].periodPerTick = period;
   encoder[2].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder3()
 {
-  unsigned long currentTickTime = micros();
+  uint64_t currentTickTime = esp_timer_get_time();
 
   if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
   {
@@ -88,11 +80,8 @@ void IRAM_ATTR readEncoder3()
     encoder[3].dir = 1;
   }
 
-  unsigned long period = currentTickTime - encoder[3].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[3].periodPerTick = period;
-  }
+  uint64_t period = currentTickTime - encoder[3].oldTickTime;
+  encoder[3].periodPerTick = period;
   encoder[3].oldTickTime = currentTickTime;
 }
 //----------------------------------------------------------------------------------------------//
@@ -130,9 +119,9 @@ void pidInit()
 //---------------------------------------------------------------------------------------------
 // Timing variables in microseconds
 // please do not adjust any of the values as it can affect important operations
-unsigned long serialLoopTime, serialLoopTimeInterval = 5;
-unsigned long pidTime, pidTimeInterval = 5;
-unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 1000;
+uint64_t serialLoopTime, serialLoopTimeInterval = 200;
+uint64_t pidTime, pidTimeInterval = 1000;
+uint64_t pidStopTime[num_of_motors], pidStopTimeInterval = 1000000;
 //---------------------------------------------------------------------------------------------
 
 
@@ -143,6 +132,7 @@ void setup()
   Serial.begin(115200);
   // Serial.begin(460800);
   // Serial.begin(921600);
+  // Serial.setTimeout(2);
 
   Wire.onReceive(onReceive);
   Wire.onRequest(onRequest);
@@ -162,13 +152,13 @@ void setup()
   digitalWrite(LED_BUILTIN, LOW);
 
   // Initialize timing markers
-  unsigned long now = millis();
-  serialLoopTime = now;
-  pidTime = now;
+  uint64_t now_us = esp_timer_get_time();
+  serialLoopTime = now_us;
+  pidTime = now_us;
   for (int i = 0; i < num_of_motors; i += 1)
   {
-    pidStopTime[i] = now;
-    cmdVelTimeout[i] = now;
+    pidStopTime[i] = now_us;
+    cmdVelTimeout[i] = now_us;
     isMotorCommanded[i] = 0;
   }
 }
@@ -177,22 +167,30 @@ void loop()
 {
   // Serial comm loop
   recieve_and_send_data();
-  // if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  // {
-  //   recieve_and_send_data();
-  //   serialLoopTime = millis();
-  // }
-
-  // Sensor update
-  for (int i = 0; i < num_of_motors; i += 1)
+  uint64_t current_time = esp_timer_get_time();
+  if ((current_time - serialLoopTime) >= serialLoopTimeInterval)
   {
-    encoder[i].resetAngVelToZero();
-    unfilteredVel[i] = encoder[i].getAngVel();
-    filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
+    // recieve_and_send_data();
+    // Sensor update
+    for (int i = 0; i < num_of_motors; i += 1)
+    {
+      encoder[i].resetAngVelToZero();
+      unfilteredVel[i] = encoder[i].getAngVel();
+      filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
+
+      // if (pidMode[i])
+      // {
+      //   output[i] = pidMotor[i].compute(target[i], filteredVel[i]);
+      //   motor[i].sendPWM((int)output[i]);
+      // }
+    }
+    serialLoopTime = current_time;
   }
 
+  
+
   // PID control loop
-  if ((millis() - pidTime) >= pidTimeInterval)
+  if ((current_time - pidTime) >= pidTimeInterval)
   {
     for (int i = 0; i < num_of_motors; i += 1)
     {
@@ -202,7 +200,7 @@ void loop()
         motor[i].sendPWM((int)output[i]);
       }
     }
-    pidTime = millis();
+    pidTime = current_time;
   }
 
   // check to see if motor has stopped
@@ -211,18 +209,18 @@ void loop()
     int target_int = (int)fabs(target[i]) * 1000;
     if (target_int < 10 && pidMode[i])
     {
-      if ((millis() - pidStopTime[i]) >= pidStopTimeInterval)
+      if ((current_time - pidStopTime[i]) >= pidStopTimeInterval)
       {
         pidMotor[i].begin();
         isMotorCommanded[i] = 0;
         pidMode[i] = 0;
         motor[i].sendPWM(0);
-        pidStopTime[i] = millis();
+        pidStopTime[i] = current_time;
       }
     }
     else
     {
-      pidStopTime[i] = millis();
+      pidStopTime[i] = current_time;
     }
   }
 
@@ -234,9 +232,9 @@ void loop()
     {
       if (!isMotorCommanded[i])
       {
-        cmdVelTimeout[i] = millis();
+        cmdVelTimeout[i] = current_time;
       }
-      if (isMotorCommanded[i] && ((millis() - cmdVelTimeout[i]) >= cmdVelTimeoutInterval))
+      if (isMotorCommanded[i] && ((current_time - cmdVelTimeout[i]) >= cmdVelTimeoutInterval))
       {
         if(pidMode[i]){
           target[i] = 0.000;

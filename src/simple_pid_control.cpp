@@ -11,7 +11,7 @@ SimplePID::SimplePID(double Kp, double Ki, double Kd, double out_min, double out
   outMin = out_min;
 
   errorPrev = error;
-  lastTime = micros();
+  lastTime = esp_timer_get_time();
 }
 
 void SimplePID::setParameters(double Kp, double Ki, double Kd, double out_min, double out_max)
@@ -58,7 +58,7 @@ void SimplePID::begin()
 
 double SimplePID::compute(double target, double actual)
 {
-  double dt = (double)(micros() - lastTime)/1000000.0;
+  double dt = (double)(esp_timer_get_time() - lastTime)/1000000.0;
 
   error = target - actual;
 
@@ -92,7 +92,7 @@ double SimplePID::compute(double target, double actual)
   }
 
   errorPrev = error;
-  lastTime = micros();
+  lastTime = esp_timer_get_time();
 
   return outSat;
 }
