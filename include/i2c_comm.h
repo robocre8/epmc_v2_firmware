@@ -133,17 +133,15 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case SET_PID_MODE: {
-      uint8_t pos = data[0];
       float value;
       memcpy(&value, &data[1], sizeof(float));
-      float res = setPidModeFunc((int)pos, (int)value);
+      float res = setPidModeFunc((int)value);
       prepareResponse1(res);
       break;
     }
 
     case GET_PID_MODE: {
-      uint8_t pos = data[0];
-      float res = getPidModeFunc((int)pos);
+      float res = getPidModeFunc();
       prepareResponse1(res);
       break;
     }

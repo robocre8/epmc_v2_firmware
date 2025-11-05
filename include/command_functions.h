@@ -160,19 +160,20 @@ SimplePID pidMotor[num_of_motors] = {
 
 
 // check if in PID or PWM mode
-int pidMode[num_of_motors] = {
-  0,
-  0,
-  0,
-  0
-}; // 1-PID MODE, 0-SETUP/PWM MODE
+// int pidMode[num_of_motors] = {
+//   0,
+//   0,
+//   0,
+//   0
+// }; // 1-PID MODE, 0-SETUP/PWM MODE
+int pidMode = 0;
 
-int isMotorCommanded[num_of_motors] = {
-  0,
-  0,
-  0,
-  0
-};
+// int isMotorCommanded[num_of_motors] = {
+//   0,
+//   0,
+//   0,
+//   0
+// };
 
 int rdir[num_of_motors] = {
   1,
@@ -191,7 +192,7 @@ double maxVel[num_of_motors] = {
 
 // for command timeout.
 uint64_t cmdVelTimeoutInterval = 0; // us -> (1000000/sampleTime) hz
-uint64_t cmdVelTimeout[num_of_motors];
+uint64_t cmdVelTimeout;
 
 // initial i2cAddress
 uint8_t i2cAddress = 0x55;
@@ -323,24 +324,10 @@ float writeSpeed(float v0, float v1, float v2, float v3)
   float targetVel[4] = {v0, v1, v2, v3};
   for (int i = 0; i < num_of_motors; i += 1)
   {
-    pidMode[i] = 1;
-
-    double vel;
-    if (targetVel[i] > maxVel[i]){
-      vel = maxVel[i];
-    }
-    else if (targetVel[i] < (-1.00 * maxVel[i])){
-      vel = -1.00 * maxVel[i];
-    }
-    else {
-      vel = targetVel[i];
-    }
-      
-    target[i] = (double)rdir[i] * vel;
-    isMotorCommanded[i] = 1;
-
-    cmdVelTimeout[i] = esp_timer_get_time();
+    float tVel = constrain(targetVel[i], -1.00 * maxVel[i], maxVel[i]);
+    target[i] = (double)rdir[i] * tVel;
   }
+  cmdVelTimeout = esp_timer_get_time();
 
   return 1.0;
 }
@@ -348,22 +335,14 @@ float writeSpeed(float v0, float v1, float v2, float v3)
 float writePWM(int pwm0, int pwm1, int pwm2, int pwm3)
 {
   int pwm[4] = {pwm0, pwm1, pwm2, pwm3};
-  for (int i = 0; i < num_of_motors; i += 1){
-    pidMode[i] = 0;
-
-    int p;
-    if (pwm[i]>255)
-      p = 255;
-    else if (pwm[i]<-255)
-      p = -255;
-    else
-      p = pwm[i];
-    isMotorCommanded[i] = 1;
-    if (p == 0) isMotorCommanded[i] = 0;
-    motor[i].sendPWM(rdir[i] * p);
-
-    cmdVelTimeout[i] = esp_timer_get_time();
+  if(pidMode == 0){
+    for (int i = 0; i < num_of_motors; i += 1){
+      int p = constrain(pwm[i], -255, 255);
+      motor[i].sendPWM(rdir[i] * p);
+    }
+    cmdVelTimeout = esp_timer_get_time();
   }
+  
   return 1.0;
 }
 
@@ -527,37 +506,50 @@ float getMaxVel(int motor_no)
 
 
 
-float setPidModeFunc(int motor_no, int mode)
+float setPidModeFunc(int mode)
 {
-  pidMode[motor_no] = mode;
-  motor[motor_no].sendPWM(0);
-  pidMotor[motor_no].begin();
-
-  return 1.0;
+  if (mode == 0)
+  {
+    pidMode = 0;
+    for (int i = 0; i < num_of_motors; i += 1){
+      motor[i].sendPWM(0);
+      pidMotor[i].begin();
+    }
+    return 1.0;
+  }
+  else if (mode == 1)
+  {
+    pidMode = 1;
+    for (int i = 0; i < num_of_motors; i += 1){
+      motor[i].sendPWM(0);
+      pidMotor[i].begin();
+    }
+    return 1.0;
+  }
+  else
+  {
+    return 0.0;
+  }
 }
-float getPidModeFunc(int motor_no)
+float getPidModeFunc()
 {
-  return (float)pidMode[motor_no];
+  if (pidMode == 1) return 1.0;
+  else return 0.0;
 }
-
-
 
 
 float setCmdTimeout(int timeout_ms)
 {
-  unsigned long cmdTimeout = timeout_ms;
-  if (cmdTimeout < 10)
+  uint64_t cmdTimeout = timeout_ms;
+  if (cmdTimeout < 100)
   {
     cmdVelTimeoutInterval = 0;
   }
   else
   {
     cmdVelTimeoutInterval = cmdTimeout*1000;
-    for (int i = 0; i < num_of_motors; i += 1)
-    {
-      cmdVelTimeout[i] = esp_timer_get_time();
-    }
   }
+  cmdVelTimeout = esp_timer_get_time();
   return 1.0;
 }
 float getCmdTimeout()

@@ -121,7 +121,7 @@ void pidInit()
 // please do not adjust any of the values as it can affect important operations
 uint64_t serialLoopTime, serialLoopTimeInterval = 200;
 uint64_t pidTime, pidTimeInterval = 1000;
-uint64_t pidStopTime[num_of_motors], pidStopTimeInterval = 1500000;
+uint64_t pidStopTime, pidStopTimeInterval = 1500000;
 //---------------------------------------------------------------------------------------------
 
 
@@ -155,46 +155,35 @@ void setup()
   uint64_t now_us = esp_timer_get_time();
   serialLoopTime = now_us;
   pidTime = now_us;
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    pidStopTime[i] = now_us;
-    cmdVelTimeout[i] = now_us;
-    isMotorCommanded[i] = 0;
-  }
+  pidStopTime = now_us;
+  cmdVelTimeout = now_us;
+
 }
 
 void loop()
 {
+  uint64_t current_time = esp_timer_get_time();
+
   // Serial comm loop
   recieve_and_send_data();
-  uint64_t current_time = esp_timer_get_time();
+  
   if ((current_time - serialLoopTime) >= serialLoopTimeInterval)
   {
-    // recieve_and_send_data();
-    // Sensor update
     for (int i = 0; i < num_of_motors; i += 1)
     {
       encoder[i].resetAngVelToZero();
       unfilteredVel[i] = encoder[i].getAngVel();
       filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
-
-      // if (pidMode[i])
-      // {
-      //   output[i] = pidMotor[i].compute(target[i], filteredVel[i]);
-      //   motor[i].sendPWM((int)output[i]);
-      // }
     }
     serialLoopTime = current_time;
   }
 
-  
-
   // PID control loop
   if ((current_time - pidTime) >= pidTimeInterval)
   {
-    for (int i = 0; i < num_of_motors; i += 1)
+    if (pidMode)
     {
-      if (pidMode[i])
+      for (int i = 0; i < num_of_motors; i += 1)
       {
         output[i] = pidMotor[i].compute(target[i], filteredVel[i]);
         motor[i].sendPWM((int)output[i]);
@@ -204,46 +193,44 @@ void loop()
   }
 
   // check to see if motor has stopped
-  for (int i = 0; i < num_of_motors; i += 1)
+  if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001 && abs(target[2]) < 0.001 && abs(target[3]) < 0.001)
   {
-    int target_int = (int)fabs(target[i]) * 1000;
-    if (target_int < 10 && pidMode[i])
+    if (pidMode == 1)
     {
-      if ((current_time - pidStopTime[i]) >= pidStopTimeInterval)
+      if ((current_time - pidStopTime) >= pidStopTimeInterval)
       {
-        pidMotor[i].begin();
-        isMotorCommanded[i] = 0;
-        pidMode[i] = 0;
-        motor[i].sendPWM(0);
-        pidStopTime[i] = current_time;
+        target[0] = 0.00;
+        target[1] = 0.00;
+        target[2] = 0.00;
+        target[3] = 0.00;
+        setPidModeFunc(0);
+        pidStopTime = current_time;
       }
     }
     else
     {
-      pidStopTime[i] = current_time;
+      pidStopTime = current_time;
     }
+  }
+  else
+  {
+    if (pidMode == 0)
+    {
+      setPidModeFunc(1);
+    }
+    pidStopTime = current_time;
   }
 
   // command timeout
-  int cmdTimeout = (int)cmdVelTimeoutInterval;
   if (cmdVelTimeoutInterval > 0)
   {
-    for (int i = 0; i < num_of_motors; i += 1)
+    if ((current_time - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
-      if (!isMotorCommanded[i])
-      {
-        cmdVelTimeout[i] = current_time;
-      }
-      if (isMotorCommanded[i] && ((current_time - cmdVelTimeout[i]) >= cmdVelTimeoutInterval))
-      {
-        if(pidMode[i]){
-          target[i] = 0.000;
-        }
-        else {
-          motor[i].sendPWM(0);
-        }
-        isMotorCommanded[i] = 0;
-      }
+      target[0] = 0.00;
+      target[1] = 0.00;
+      target[2] = 0.00;
+      target[3] = 0.00;
+      setPidModeFunc(0);
     }
   }
 }
