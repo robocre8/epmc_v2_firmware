@@ -190,8 +190,8 @@ double maxVel[num_of_motors] = {
 };
 
 // for command timeout.
-unsigned long cmdVelTimeoutInterval = 0; // us -> (1000000/sampleTime) hz
-unsigned long cmdVelTimeout[num_of_motors];
+uint64_t cmdVelTimeoutInterval = 0; // us -> (1000000/sampleTime) hz
+uint64_t cmdVelTimeout[num_of_motors];
 
 // initial i2cAddress
 uint8_t i2cAddress = 0x55;
@@ -339,7 +339,7 @@ float writeSpeed(float v0, float v1, float v2, float v3)
     target[i] = (double)rdir[i] * vel;
     isMotorCommanded[i] = 1;
 
-    cmdVelTimeout[i] = millis();
+    cmdVelTimeout[i] = esp_timer_get_time();
   }
 
   return 1.0;
@@ -362,7 +362,7 @@ float writePWM(int pwm0, int pwm1, int pwm2, int pwm3)
     if (p == 0) isMotorCommanded[i] = 0;
     motor[i].sendPWM(rdir[i] * p);
 
-    cmdVelTimeout[i] = millis();
+    cmdVelTimeout[i] = esp_timer_get_time();
   }
   return 1.0;
 }
@@ -552,17 +552,17 @@ float setCmdTimeout(int timeout_ms)
   }
   else
   {
-    cmdVelTimeoutInterval = cmdTimeout;
+    cmdVelTimeoutInterval = cmdTimeout*1000;
     for (int i = 0; i < num_of_motors; i += 1)
     {
-      cmdVelTimeout[i] = millis();
+      cmdVelTimeout[i] = esp_timer_get_time();
     }
   }
   return 1.0;
 }
 float getCmdTimeout()
 {
-  return (float)cmdVelTimeoutInterval;
+  return (float)(cmdVelTimeoutInterval/1000);
 }
 
 

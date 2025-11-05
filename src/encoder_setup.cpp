@@ -12,7 +12,7 @@ QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, double ppr)
   tickCount = 0;
   prevTickCount = 0;
   dir = 1;
-  setZeroPeriodPerTick(10);
+  setZeroPeriodPerTick(2);
   oldTickTime = esp_timer_get_time();
 }
 
