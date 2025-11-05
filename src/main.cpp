@@ -121,7 +121,7 @@ void pidInit()
 // please do not adjust any of the values as it can affect important operations
 uint64_t serialLoopTime, serialLoopTimeInterval = 200;
 uint64_t pidTime, pidTimeInterval = 1000;
-uint64_t pidStopTime[num_of_motors], pidStopTimeInterval = 1000000;
+uint64_t pidStopTime[num_of_motors], pidStopTimeInterval = 1500000;
 //---------------------------------------------------------------------------------------------
 
 
