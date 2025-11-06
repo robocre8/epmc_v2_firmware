@@ -13,21 +13,16 @@ public:
   volatile int8_t dir;
   int clkPin, dirPin;
   double pulsePerRev;
-  uint64_t periodPerTick;
-  uint64_t stopPeriodPerTick;
-  volatile uint64_t oldTickTime;
-  volatile double freqPerTick;
+  uint64_t lastTime;
 
   QuadEncoder(int clk_pin, int dir_pin, double ppr);
 
   void setPulsePerRev(double ppr);
-  void setZeroPeriodPerTick(uint64_t stop_time_ms);
   double getAngPos();
   double getAngVel();
-  void resetAngVelToZero();
 
 private:
-  double prevTickCount;
+  long prevTickCount;
   
 };
 

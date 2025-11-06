@@ -7,8 +7,6 @@
 //------------------------------------------------------------------------------//
 void IRAM_ATTR readEncoder0()
 {
-  uint64_t currentTickTime = esp_timer_get_time();
-
   if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
   {
     encoder[0].tickCount -= 1;
@@ -19,16 +17,10 @@ void IRAM_ATTR readEncoder0()
     encoder[0].tickCount += 1;
     encoder[0].dir = 1;
   }
-
-  uint64_t period = currentTickTime - encoder[0].oldTickTime;
-  encoder[0].periodPerTick = period;
-  encoder[0].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder1()
 {
-  uint64_t currentTickTime = esp_timer_get_time();
-
   if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
   {
     encoder[1].tickCount -= 1;
@@ -39,16 +31,10 @@ void IRAM_ATTR readEncoder1()
     encoder[1].tickCount += 1;
     encoder[1].dir = 1;
   }
-
-  uint64_t period = currentTickTime - encoder[1].oldTickTime;
-  encoder[1].periodPerTick = period;
-  encoder[1].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder2()
 {
-  uint64_t currentTickTime = esp_timer_get_time();
-
   if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
   {
     encoder[2].tickCount -= 1;
@@ -59,16 +45,10 @@ void IRAM_ATTR readEncoder2()
     encoder[2].tickCount += 1;
     encoder[2].dir = 1;
   }
-
-  uint64_t period = currentTickTime - encoder[2].oldTickTime;
-  encoder[2].periodPerTick = period;
-  encoder[2].oldTickTime = currentTickTime;
 }
 
 void IRAM_ATTR readEncoder3()
 {
-  uint64_t currentTickTime = esp_timer_get_time();
-
   if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
   {
     encoder[3].tickCount -= 1;
@@ -79,10 +59,6 @@ void IRAM_ATTR readEncoder3()
     encoder[3].tickCount += 1;
     encoder[3].dir = 1;
   }
-
-  uint64_t period = currentTickTime - encoder[3].oldTickTime;
-  encoder[3].periodPerTick = period;
-  encoder[3].oldTickTime = currentTickTime;
 }
 //----------------------------------------------------------------------------------------------//
 
@@ -119,9 +95,9 @@ void pidInit()
 //---------------------------------------------------------------------------------------------
 // Timing variables in microseconds
 // please do not adjust any of the values as it can affect important operations
-uint64_t serialLoopTime, serialLoopTimeInterval = 200;
-uint64_t pidTime, pidTimeInterval = 1000;
-uint64_t pidStopTime, pidStopTimeInterval = 1500000;
+uint64_t sensorReadTime, sensorReadTimeInterval = 1000;
+uint64_t pidTime, pidTimeInterval = 5000;
+uint64_t pidStopTime, pidStopTimeInterval = 1000000;
 //---------------------------------------------------------------------------------------------
 
 
@@ -153,7 +129,7 @@ void setup()
 
   // Initialize timing markers
   uint64_t now_us = esp_timer_get_time();
-  serialLoopTime = now_us;
+  sensorReadTime = now_us;
   pidTime = now_us;
   pidStopTime = now_us;
   cmdVelTimeout = now_us;
@@ -162,24 +138,21 @@ void setup()
 
 void loop()
 {
-  uint64_t current_time = esp_timer_get_time();
-
   // Serial comm loop
   recieve_and_send_data();
   
-  if ((current_time - serialLoopTime) >= serialLoopTimeInterval)
+  if ((esp_timer_get_time() - sensorReadTime) >= sensorReadTimeInterval)
   {
     for (int i = 0; i < num_of_motors; i += 1)
     {
-      encoder[i].resetAngVelToZero();
       unfilteredVel[i] = encoder[i].getAngVel();
       filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
     }
-    serialLoopTime = current_time;
+    sensorReadTime = esp_timer_get_time();
   }
 
   // PID control loop
-  if ((current_time - pidTime) >= pidTimeInterval)
+  if ((esp_timer_get_time() - pidTime) >= pidTimeInterval)
   {
     if (pidMode)
     {
@@ -189,7 +162,7 @@ void loop()
         motor[i].sendPWM((int)output[i]);
       }
     }
-    pidTime = current_time;
+    pidTime = esp_timer_get_time();
   }
 
   // check to see if motor has stopped
@@ -197,19 +170,19 @@ void loop()
   {
     if (pidMode == 1)
     {
-      if ((current_time - pidStopTime) >= pidStopTimeInterval)
+      if ((esp_timer_get_time() - pidStopTime) >= pidStopTimeInterval)
       {
         target[0] = 0.00;
         target[1] = 0.00;
         target[2] = 0.00;
         target[3] = 0.00;
         setPidModeFunc(0);
-        pidStopTime = current_time;
+        pidStopTime = esp_timer_get_time();
       }
     }
     else
     {
-      pidStopTime = current_time;
+      pidStopTime = esp_timer_get_time();
     }
   }
   else
@@ -218,13 +191,13 @@ void loop()
     {
       setPidModeFunc(1);
     }
-    pidStopTime = current_time;
+    pidStopTime = esp_timer_get_time();
   }
 
   // command timeout
   if (cmdVelTimeoutInterval > 0)
   {
-    if ((current_time - cmdVelTimeout) >= cmdVelTimeoutInterval)
+    if ((esp_timer_get_time() - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
       target[0] = 0.00;
       target[1] = 0.00;
