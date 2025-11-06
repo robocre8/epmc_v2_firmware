@@ -10,7 +10,6 @@ static portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
 class QuadEncoder {
 public:
   volatile long tickCount;
-  volatile int8_t dir;
   int clkPin, dirPin;
   double pulsePerRev;
   uint64_t lastTime;
