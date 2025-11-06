@@ -11,7 +11,6 @@ QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, double ppr)
 
   tickCount = 0;
   prevTickCount = 0;
-  dir = 1;
 }
 
 void QuadEncoder::setPulsePerRev(double ppr)

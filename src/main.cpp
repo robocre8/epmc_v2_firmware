@@ -10,12 +10,10 @@ void IRAM_ATTR readEncoder0()
   if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
   {
     encoder[0].tickCount -= 1;
-    encoder[0].dir = -1;
   }
   else
   {
     encoder[0].tickCount += 1;
-    encoder[0].dir = 1;
   }
 }
 
@@ -24,12 +22,10 @@ void IRAM_ATTR readEncoder1()
   if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
   {
     encoder[1].tickCount -= 1;
-    encoder[1].dir = -1;
   }
   else
   {
     encoder[1].tickCount += 1;
-    encoder[1].dir = 1;
   }
 }
 
@@ -38,12 +34,10 @@ void IRAM_ATTR readEncoder2()
   if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
   {
     encoder[2].tickCount -= 1;
-    encoder[2].dir = -1;
   }
   else
   {
     encoder[2].tickCount += 1;
-    encoder[2].dir = 1;
   }
 }
 
@@ -52,12 +46,10 @@ void IRAM_ATTR readEncoder3()
   if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
   {
     encoder[3].tickCount -= 1;
-    encoder[3].dir = -1;
   }
   else
   {
     encoder[3].tickCount += 1;
-    encoder[3].dir = 1;
   }
 }
 //----------------------------------------------------------------------------------------------//
