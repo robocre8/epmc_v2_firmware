@@ -93,10 +93,10 @@ double cutOffFreq[num_of_motors] = {
 };
 
 AdaptiveLowPassFilter velFilter[num_of_motors] = {
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[0]), // motor 0 velocity filter
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[1]), // motor 1 velocity filter
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[2]), // motor 0 velocity filter
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[3]) // motor 1 velocity filter
+  AdaptiveLowPassFilter(cutOffFreq[0]), // motor 0 velocity filter
+  AdaptiveLowPassFilter(cutOffFreq[1]), // motor 1 velocity filter
+  AdaptiveLowPassFilter(cutOffFreq[2]), // motor 0 velocity filter
+  AdaptiveLowPassFilter(cutOffFreq[3]) // motor 1 velocity filter
 };
 
 double filteredVel[num_of_motors] = {
@@ -566,6 +566,7 @@ float clearDataBuffer()
     filteredVel[i] = 0.0;
     unfilteredVel[i] = 0.0;
     target[i] = 0.0;
+    velFilter[i].clear();
   }
   return 1.0;
 }

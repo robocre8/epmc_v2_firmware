@@ -6,23 +6,15 @@
 class AdaptiveLowPassFilter
 {
   private:
-    int order; // 1 or 2
-    float a[2];
-    float b[3];
-    float omega0;
-    float dt;
-    float tn1 = 0;
-    float x[3]; // Raw values
-    float y[3]; // Filtered values
+    double y_prev;
+    double Tf;
+    uint64_t lastTime;
 
   public:  
-    AdaptiveLowPassFilter(int, float);
-
-    void setCutOffFreq(float);
-    void setOrder(int);
-    void setCoef();
-    float filter(float);
+    AdaptiveLowPassFilter(double);
+    void setCutOffFreq(double);
+    double filter(double);
+    void clear();
 };
 
 #endif
-

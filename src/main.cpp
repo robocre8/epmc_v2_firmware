@@ -172,10 +172,11 @@ void loop()
     {
       if ((esp_timer_get_time() - pidStopTime) >= pidStopTimeInterval)
       {
-        target[0] = 0.00;
-        target[1] = 0.00;
-        target[2] = 0.00;
-        target[3] = 0.00;
+        for (int i = 0; i < num_of_motors; i += 1)
+        {
+          target[i] = 0.0;
+          velFilter[i].clear();
+        }
         setPidModeFunc(0);
         pidStopTime = esp_timer_get_time();
       }
@@ -199,10 +200,11 @@ void loop()
   {
     if ((esp_timer_get_time() - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
-      target[0] = 0.00;
-      target[1] = 0.00;
-      target[2] = 0.00;
-      target[3] = 0.00;
+      for (int i = 0; i < num_of_motors; i += 1)
+      {
+        target[i] = 0.0;
+        velFilter[i].clear();
+      }
       setPidModeFunc(0);
     }
   }
