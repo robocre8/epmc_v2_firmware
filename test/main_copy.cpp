@@ -1,251 +1,53 @@
 #include <Arduino.h>
-#include "command_functions.h"
-#include "serial_comm.h"
-#include "i2c_comm.h"
 
-//------------------------------------------------------------------------------//
-void IRAM_ATTR readEncoder0()
-{
-  unsigned long currentTickTime = micros();
+// MOTOR 1
+#define IN1 0
+#define IN2 1
 
-  if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
-  {
-    encoder[0].tickCount -= 1;
-    encoder[0].dir = -1;
-  }
-  else
-  {
-    encoder[0].tickCount += 1;
-    encoder[0].dir = 1;
-  }
+// MOTOT 2
+#define IN3 3
+#define IN4 4
 
-  unsigned long period = currentTickTime - encoder[0].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[0].periodPerTick = period;
-  }
-  encoder[0].oldTickTime = currentTickTime;
+
+void setup() {
+ pinMode(IN1, OUTPUT);
+ pinMode(IN2, OUTPUT);
+ pinMode(IN3, OUTPUT);
+ pinMode(IN4, OUTPUT);
+
 }
 
-void IRAM_ATTR readEncoder1()
-{
-  unsigned long currentTickTime = micros();
+void loop() {
+  analogWrite(IN1, 100);
+  analogWrite(IN2, 0);
 
-  if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
-  {
-    encoder[1].tickCount -= 1;
-    encoder[1].dir = -1;
-  }
-  else
-  {
-    encoder[1].tickCount += 1;
-    encoder[1].dir = 1;
-  }
+  analogWrite(IN3, 100);
+  analogWrite(IN4, 0);
 
-  unsigned long period = currentTickTime - encoder[1].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[1].periodPerTick = period;
-  }
-  encoder[1].oldTickTime = currentTickTime;
-}
+  delay(5000);
 
-void IRAM_ATTR readEncoder2()
-{
-  unsigned long currentTickTime = micros();
+  analogWrite(IN1, 0);
+  analogWrite(IN2, 0);
 
-  if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
-  {
-    encoder[2].tickCount -= 1;
-    encoder[2].dir = -1;
-  }
-  else
-  {
-    encoder[2].tickCount += 1;
-    encoder[2].dir = 1;
-  }
+  analogWrite(IN3, 0);
+  analogWrite(IN4, 0);
 
-  unsigned long period = currentTickTime - encoder[2].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[2].periodPerTick = period;
-  }
-  encoder[2].oldTickTime = currentTickTime;
-}
+  delay(2000);
 
-void IRAM_ATTR readEncoder3()
-{
-  unsigned long currentTickTime = micros();
+  analogWrite(IN1, 0);
+  analogWrite(IN2, 100);
 
-  if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
-  {
-    encoder[3].tickCount -= 1;
-    encoder[3].dir = -1;
-  }
-  else
-  {
-    encoder[3].tickCount += 1;
-    encoder[3].dir = 1;
-  }
+  analogWrite(IN3, 0);
+  analogWrite(IN4, 100);
 
-  unsigned long period = currentTickTime - encoder[3].oldTickTime;
-  if (period > 50 && period < 20000000)
-  { // Ignore if > 20 sec or negative
-    encoder[3].periodPerTick = period;
-  }
-  encoder[3].oldTickTime = currentTickTime;
-}
-//----------------------------------------------------------------------------------------------//
+  delay(5000);
 
-void encoderInit()
-{
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    encoder[i].setPulsePerRev(enc_ppr[i]);
-  }
+  analogWrite(IN1, 0);
+  analogWrite(IN2, 0);
 
-  attachInterrupt(digitalPinToInterrupt(encoder[0].clkPin), readEncoder0, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[1].clkPin), readEncoder1, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[2].clkPin), readEncoder2, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[3].clkPin), readEncoder3, RISING);
-}
+  analogWrite(IN3, 0);
+  analogWrite(IN4, 0);
 
-void velFilterInit()
-{
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    velFilter[i].setCutOffFreq(cutOffFreq[i]);
-  }
-}
+  delay(2000);
 
-void pidInit()
-{
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    pidMotor[i].setParameters(kp[i], ki[i], kd[i], outMin, outMax);
-    pidMotor[i].begin();
-  }
-}
-
-//---------------------------------------------------------------------------------------------
-// Timing variables in microseconds
-// please do not adjust any of the values as it can affect important operations
-unsigned long serialLoopTime, serialLoopTimeInterval = 5;
-unsigned long pidTime, pidTimeInterval = 5;
-unsigned long pidStopTime[num_of_motors], pidStopTimeInterval = 500;
-//---------------------------------------------------------------------------------------------
-
-
-void setup()
-{
-  loadStoredParams();
-
-  // Serial.begin(115200);
-  // Serial.begin(460800);
-  Serial.begin(921600);
-
-  Wire.onReceive(onReceive);
-  Wire.onRequest(onRequest);
-  Wire.begin(i2cAddress);
-
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  analogWriteResolution(8); // 8 Bit resolution
-  analogWriteFrequency(1000); // 1kHz
-
-  encoderInit();
-  velFilterInit();
-  pidInit();
-
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // Initialize timing markers
-  unsigned long now = millis();
-  serialLoopTime = now;
-  pidTime = now;
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    pidStopTime[i] = now;
-    cmdVelTimeout[i] = now;
-    isMotorCommanded[i] = 0;
-  }
-}
-
-void loop()
-{
-  // Serial comm loop
-  // recieve_and_send_data();
-  if ((millis() - serialLoopTime) >= serialLoopTimeInterval)
-  {
-    recieve_and_send_data();
-    serialLoopTime = millis();
-  }
-
-  // Sensor update
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    encoder[i].resetAngVelToZero();
-    unfilteredVel[i] = encoder[i].getAngVel();
-    filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
-  }
-
-  // PID control loop
-  if ((millis() - pidTime) >= pidTimeInterval)
-  {
-    for (int i = 0; i < num_of_motors; i += 1)
-    {
-      if (pidMode[i])
-      {
-        output[i] = pidMotor[i].compute(target[i], filteredVel[i]);
-        motor[i].sendPWM((int)output[i]);
-      }
-    }
-    pidTime = millis();
-  }
-
-  // check to see if motor has stopped
-  for (int i = 0; i < num_of_motors; i += 1)
-  {
-    int target_int = (int)fabs(target[i]) * 1000;
-    if (target_int < 10 && pidMode[i])
-    {
-      if ((millis() - pidStopTime[i]) >= pidStopTimeInterval)
-      {
-        pidMotor[i].begin();
-        isMotorCommanded[i] = 0;
-        pidMode[i] = 0;
-        motor[i].sendPWM(0);
-        pidStopTime[i] = millis();
-      }
-    }
-    else
-    {
-      pidStopTime[i] = millis();
-    }
-  }
-
-  // command timeout
-  int cmdTimeout = (int)cmdVelTimeoutInterval;
-  if (cmdVelTimeoutInterval > 0)
-  {
-    for (int i = 0; i < num_of_motors; i += 1)
-    {
-      if (!isMotorCommanded[i])
-      {
-        cmdVelTimeout[i] = millis();
-      }
-      if (isMotorCommanded[i] && ((millis() - cmdVelTimeout[i]) >= cmdVelTimeoutInterval))
-      {
-        if(pidMode[i]){
-          target[i] = 0.000;
-        }
-        else {
-          motor[i].sendPWM(0);
-        }
-        isMotorCommanded[i] = 0;
-      }
-    }
-  }
 }

@@ -6,70 +6,58 @@
 
 void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
-  gpio_set_level((gpio_num_t)LED_BUILTIN, 1);
+  digitalWrite(LED_PIN, HIGH);
   switch (cmd) {
     case WRITE_VEL: {
-      float v0, v1, v2, v3;
+      float v0, v1;
       memcpy(&v0, &data[0], sizeof(float));
       memcpy(&v1, &data[4], sizeof(float));
-      memcpy(&v2, &data[8], sizeof(float));
-      memcpy(&v3, &data[12], sizeof(float));
-      writeSpeed(v0, v1, v2, v3);
+      writeSpeed(v0, v1);
       break;
     }
 
 
     case WRITE_PWM: {
-      float pwm0, pwm1, pwm2, pwm3;
+      float pwm0, pwm1;
       memcpy(&pwm0, &data[0], sizeof(float));
       memcpy(&pwm1, &data[4], sizeof(float));
-      memcpy(&pwm2, &data[8], sizeof(float));
-      memcpy(&pwm3, &data[12], sizeof(float));
-      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      writePWM((int)pwm0, (int)pwm1);
       break;
     }
 
 
     case READ_POS: {
-      float pos0, pos1, pos2, pos3;
-      readPos(pos0, pos1, pos2, pos3);
+      float pos0, pos1;
+      readPos(pos0, pos1);
       Serial.write((uint8_t*)&pos0, sizeof(pos0));
       Serial.write((uint8_t*)&pos1, sizeof(pos1));
-      Serial.write((uint8_t*)&pos2, sizeof(pos2));
-      Serial.write((uint8_t*)&pos3, sizeof(pos3));
       break;
     }
 
 
     case READ_VEL: {
-      float v0, v1, v2, v3;
-      readFilteredVel(v0, v1, v2, v3);
+      float v0, v1;
+      readFilteredVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
-      Serial.write((uint8_t*)&v2, sizeof(v2));
-      Serial.write((uint8_t*)&v3, sizeof(v3));
       break;
     }
 
 
     case READ_UVEL: {
-      float v0, v1, v2, v3;
-      readUnfilteredVel(v0, v1, v2, v3);
+      float v0, v1;
+      readUnfilteredVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
-      Serial.write((uint8_t*)&v2, sizeof(v2));
-      Serial.write((uint8_t*)&v3, sizeof(v3));
       break;
     }
 
 
     case READ_TVEL: {
-      float v0, v1, v2, v3;
-      readTargetVel(v0, v1, v2, v3);
+      float v0, v1;
+      readTargetVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
-      Serial.write((uint8_t*)&v2, sizeof(v2));
-      Serial.write((uint8_t*)&v3, sizeof(v3));
       break;
     }
 
@@ -145,7 +133,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       uint8_t pos = data[0];
       float value;
       memcpy(&value, &data[1], sizeof(float));
-      float res = setRdir((int)pos, (double)value);
+      float res = setRdir((int)pos, (float)value);
       Serial.write((uint8_t*)&res, sizeof(res));
       break;
     }
@@ -245,17 +233,13 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_MOTOR_DATA: {
-      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
-      readPos(pos0, pos1, pos2, pos3);
-      readFilteredVel(v0, v1, v2, v3);
+      float pos0, pos1, v0, v1;
+      readPos(pos0, pos1);
+      readFilteredVel(v0, v1);
       Serial.write((uint8_t*)&pos0, sizeof(pos0));
       Serial.write((uint8_t*)&pos1, sizeof(pos1));
-      Serial.write((uint8_t*)&pos2, sizeof(pos2));
-      Serial.write((uint8_t*)&pos3, sizeof(pos3));
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
-      Serial.write((uint8_t*)&v2, sizeof(v2));
-      Serial.write((uint8_t*)&v3, sizeof(v3));
       break;
     }
 
@@ -273,7 +257,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
     }
   }
 
-  gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+  digitalWrite(LED_PIN, LOW);
 }
 
 

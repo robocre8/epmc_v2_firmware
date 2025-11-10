@@ -11,7 +11,6 @@ SimplePID::SimplePID(double Kp, double Ki, double Kd, double out_min, double out
   outMin = out_min;
 
   errorPrev = error;
-  lastTime = esp_timer_get_time();
 }
 
 void SimplePID::setParameters(double Kp, double Ki, double Kd, double out_min, double out_max)
@@ -106,4 +105,5 @@ void SimplePID::reset()
   outSat = 0.0;
   outUnsat = 0.0;
   integratorIsOn = false;
+  lastTime = esp_timer_get_time();
 }

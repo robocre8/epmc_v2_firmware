@@ -19,11 +19,10 @@ void prepareResponse1(float res) {
   memcpy(&sendMsgBuffer[0], &res, sizeof(float));
 }
 
-void prepareResponse3(float res0, float res1, float res2) {
-  sendMsgLength = 12;
+void prepareResponse2(float res0, float res1) {
+  sendMsgLength = 8;
   memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
   memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
-  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
 }
 
 void prepareResponse4(float res0, float res1, float res2, float res3) {
@@ -34,85 +33,59 @@ void prepareResponse4(float res0, float res1, float res2, float res3) {
   memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
 }
 
-void prepareResponse6(float res0, float res1, float res2, float res3, float res4, float res5) {
-  sendMsgLength = 24;
-  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
-  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
-  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
-  memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
-  memcpy(&sendMsgBuffer[16], &res4, sizeof(float));
-  memcpy(&sendMsgBuffer[20], &res5, sizeof(float));
-}
-
-void prepareResponse8(float res0, float res1, float res2, float res3, float res4, float res5, float res6, float res7) {
-  sendMsgLength = 32;
-  memcpy(&sendMsgBuffer[0], &res0, sizeof(float));
-  memcpy(&sendMsgBuffer[4], &res1, sizeof(float));
-  memcpy(&sendMsgBuffer[8], &res2, sizeof(float));
-  memcpy(&sendMsgBuffer[12], &res3, sizeof(float));
-  memcpy(&sendMsgBuffer[16], &res4, sizeof(float));
-  memcpy(&sendMsgBuffer[20], &res5, sizeof(float));
-  memcpy(&sendMsgBuffer[24], &res6, sizeof(float));
-  memcpy(&sendMsgBuffer[28], &res7, sizeof(float));
-}
-
 // Example command handler
 void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
-  gpio_set_level((gpio_num_t)LED_BUILTIN, 1);
+  digitalWrite(LED_PIN, HIGH);
 
   switch (cmd) {
     case WRITE_VEL: {
-      float v0, v1, v2, v3;
+      float v0, v1;
       memcpy(&v0, &data[0], sizeof(float));
       memcpy(&v1, &data[4], sizeof(float));
-      memcpy(&v2, &data[8], sizeof(float));
-      memcpy(&v3, &data[12], sizeof(float));
-      writeSpeed(v0, v1, v2, v3);
-      gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+      writeSpeed(v0, v1);
+      digitalWrite(LED_PIN, LOW);
       break;
     }
 
 
     case WRITE_PWM: {
-      float pwm0, pwm1, pwm2, pwm3;
+      float pwm0, pwm1;
       memcpy(&pwm0, &data[0], sizeof(float));
       memcpy(&pwm1, &data[4], sizeof(float));
-      memcpy(&pwm2, &data[8], sizeof(float));
-      memcpy(&pwm3, &data[12], sizeof(float));
-      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
-      gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+      writePWM((int)pwm0, (int)pwm1);
+      digitalWrite(LED_PIN, LOW);
       break;
     }
 
     case READ_MOTOR_DATA: {
-      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
-      readPos(pos0, pos1, pos2, pos3);
-      readFilteredVel(v0, v1, v2, v3);
-      prepareResponse8(pos0, pos1, pos2, pos3, v0, v1, v2, v3);
+      float pos0, pos1, v0, v1;
+      readPos(pos0, pos1);
+      readFilteredVel(v0, v1);
+      prepareResponse4(pos0, pos1, v0, v1);
       break;
     }
 
     case READ_POS: {
-      float pos0, pos1, pos2, pos3;
-      readPos(pos0, pos1, pos2, pos3);
-      prepareResponse4(pos0, pos1, pos2, pos3);
+      float pos0, pos1;
+      readPos(pos0, pos1);
+      prepareResponse2(pos0, pos1);
       break;
     }
 
 
     case READ_VEL: {
-      float v0, v1, v2, v3;
-      readFilteredVel(v0, v1, v2, v3);
-      prepareResponse4(v0, v1, v2, v3);
+      float v0, v1;
+      readFilteredVel(v0, v1);
+      prepareResponse2(v0, v1);
       break;
     }
 
 
     case READ_UVEL: {
-      float v0, v1, v2, v3;
-      readUnfilteredVel(v0, v1, v2, v3);
-      prepareResponse4(v0, v1, v2, v3);
+      float v0, v1;
+      readUnfilteredVel(v0, v1);
+      prepareResponse2(v0, v1);
       break;
     }
 
@@ -167,7 +140,7 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 void onRequest() {
   Wire.write(sendMsgBuffer, sendMsgLength);
   clearSendMsgBuffer();
-  gpio_set_level((gpio_num_t)LED_BUILTIN, 0);
+  digitalWrite(LED_PIN, LOW);
 }
 
 // Called when master sends data

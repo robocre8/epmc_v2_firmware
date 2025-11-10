@@ -1,16 +1,16 @@
-#ifndef L298N_MOTOR_CONTROL_H
-#define L298N_MOTOR_CONTROL_H
+#ifndef MOTOR_CONTROL_H
+#define MOTOR_CONTROL_H
 #include <Arduino.h>
 
-class L298NMotorControl {
+class MotorControl {
   public:
-    L298NMotorControl(int IN1_pin, int IN2_pin, int en_pin);
+    MotorControl(int IN1_pin, int IN2_pin);
 
     void sendPWM(int pwmVal);
     int getDirection();
 
   private:
-    int in1Pin, in2Pin, enPin;
+    int in1Pin, in2Pin;
     int dir = 1;
 
     void setForwardDirection();
