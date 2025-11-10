@@ -7,25 +7,39 @@
 //------------------------------------------------------------------------------//
 void IRAM_ATTR readEncoder0()
 {
+  uint64_t currentTime = esp_timer_get_time();
+  encoder[0].freqPerTick = 1000000.00 / (double)(currentTime - encoder[0].oldFreqTime);
+  encoder[0].oldFreqTime = currentTime;
+  encoder[0].checkFreqTime = currentTime;
+
   if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
   {
     encoder[0].tickCount -= 1;
+    encoder[0].frequency = -encoder[0].freqPerTick / encoder[0].pulsePerRev;
   }
   else
   {
     encoder[0].tickCount += 1;
+    encoder[0].frequency = encoder[0].freqPerTick / encoder[0].pulsePerRev;
   }
 }
 
 void IRAM_ATTR readEncoder1()
 {
+  uint64_t currentTime = esp_timer_get_time();
+  encoder[1].freqPerTick = 1000000.00 / (double)(currentTime - encoder[1].oldFreqTime);
+  encoder[1].oldFreqTime = currentTime;
+  encoder[1].checkFreqTime = currentTime;
+
   if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
   {
     encoder[1].tickCount -= 1;
+    encoder[1].frequency = -encoder[1].freqPerTick / encoder[1].pulsePerRev;
   }
   else
   {
     encoder[1].tickCount += 1;
+    encoder[1].frequency = encoder[1].freqPerTick / encoder[1].pulsePerRev;
   }
 }
 //----------------------------------------------------------------------------------------------//
@@ -59,7 +73,7 @@ void pidInit()
 }
 
 //---------------------------------------------------------------------------------------------
-// Timing variables in microseconds
+// Timing variables in esp_timer_get_timeeconds
 // please do not adjust any of the values as it can affect important operations
 uint64_t sensorReadTime, sensorReadTimeInterval = 1000;
 uint64_t pidTime, pidTimeInterval = 5000;
@@ -114,6 +128,7 @@ void loop()
   {
     for (int i = 0; i < num_of_motors; i += 1)
     {
+      encoder[i].resetFrequency();
       unfilteredVel[i] = encoder[i].getAngVel();
       filteredVel[i] = velFilter[i].filter(unfilteredVel[i]);
     }
@@ -170,13 +185,8 @@ void loop()
   {
     if ((esp_timer_get_time() - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
-      for (int i = 0; i < num_of_motors; i += 1)
-      {
-        target[i] = 0.0;
-        velFilter[i].clear();
-        pidMotor[i].begin();
-      }
-      setPidModeFunc(0);
+      if (pidMode == 1) writeSpeed(0.0, 0.0);
+      else writePWM(0, 0);
     }
   }
 }

@@ -1,6 +1,6 @@
 #include "encoder_setup.h"
 
-QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, double ppr)
+QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, float ppr)
 {
   clkPin = clk_pin;
   dirPin = dir_pin;
@@ -9,8 +9,8 @@ QuadEncoder::QuadEncoder(int clk_pin, int dir_pin, double ppr)
   pinMode(clkPin, INPUT_PULLUP);
   pinMode(dirPin, INPUT_PULLUP);
 
-  tickCount = 0;
-  prevTickCount = 0;
+  oldFreqTime = esp_timer_get_time();
+  checkFreqTime = esp_timer_get_time();
 }
 
 void QuadEncoder::setPulsePerRev(double ppr)
@@ -28,14 +28,21 @@ double QuadEncoder::getAngPos()
 
 double QuadEncoder::getAngVel()
 {
-  double dt = (double)(esp_timer_get_time() - lastTime)/1000000.0;
-
   portENTER_CRITICAL(&encoderMux);
-  long ticks = tickCount;
+  double freq = frequency;
   portEXIT_CRITICAL(&encoderMux);
+  return 2.00 * PI * freq;
+}
 
-  long dTicks = ticks - prevTickCount;
-  prevTickCount = ticks;
-  lastTime = esp_timer_get_time();
-  return (2.00 * PI * (double)dTicks) / (pulsePerRev*dt);
+void QuadEncoder::setStopFreqInUs(uint64_t freq)
+{
+  freqSampleTime = freq;
+}
+
+void QuadEncoder::resetFrequency()
+{
+  if (esp_timer_get_time() - checkFreqTime >= freqSampleTime)
+  {
+    frequency = 0;
+  }
 }

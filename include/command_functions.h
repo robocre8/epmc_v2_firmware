@@ -74,8 +74,8 @@ QuadEncoder encoder[num_of_motors] = {
 // adaptive lowpass Filter
 const int filterOrder = 1;
 double cutOffFreq[num_of_motors] = {
-  5.0, // motor 0 velocity filter cutoff frequency
-  5.0, // motor 1 velocity filter cutoff frequency
+  2.5, // motor 0 velocity filter cutoff frequency
+  2.5, // motor 1 velocity filter cutoff frequency
 };
 
 AdaptiveLowPassFilter velFilter[num_of_motors] = {
@@ -206,7 +206,7 @@ void resetParamsInStorage(){
     storage.putDouble(kp_key[i], 0.0);
     storage.putDouble(ki_key[i], 0.0);
     storage.putDouble(kd_key[i], 0.0);
-    storage.putDouble(cf_key[i], 5.0);
+    storage.putDouble(cf_key[i], 2.5);
     storage.putInt(rdir_key[i], 1);
     storage.putDouble(maxVel_key[i], 10.0);
   }
@@ -241,7 +241,7 @@ void loadStoredParams(){
     kp[i] = storage.getDouble(kp_key[i], 0.0);
     ki[i] = storage.getDouble(ki_key[i], 0.0);
     kd[i] = storage.getDouble(kd_key[i], 0.0);
-    cutOffFreq[i] = storage.getDouble(cf_key[i], 5.0);
+    cutOffFreq[i] = storage.getDouble(cf_key[i], 2.5);
     rdir[i] = storage.getInt(rdir_key[i], 1);
     maxVel[i] = storage.getDouble(maxVel_key[i], 10.0);
   }
