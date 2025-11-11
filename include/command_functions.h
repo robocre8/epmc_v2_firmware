@@ -47,7 +47,7 @@ int LED_PIN = 2;
 const int num_of_motors = 2;
 
 // motor 0 H-Bridge Connection
-int IN1_0 = 3, IN2_0 = 4;
+int IN1_0 = 3, IN2_0 = 10;
 // motor 1 H-Bridge Connection
 int IN1_1 = 0, IN2_1 = 1;
 
@@ -62,7 +62,7 @@ double enc_ppr[num_of_motors]={
 };
 
 // motor 0 encoder connection
-int enc0_clkPin = 10, enc0_dirPin = 5;
+int enc0_clkPin = 4, enc0_dirPin = 5;
 // motor 1 encoder connection
 int enc1_clkPin = 6, enc1_dirPin = 7;
 
