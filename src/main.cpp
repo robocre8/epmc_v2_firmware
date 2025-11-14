@@ -9,8 +9,6 @@ void IRAM_ATTR readEncoder0()
 {
   uint64_t currentTime = esp_timer_get_time();
   encoder[0].freqPerTick = 1000000.00 / (double)(currentTime - encoder[0].oldFreqTime);
-  encoder[0].oldFreqTime = currentTime;
-  encoder[0].checkFreqTime = currentTime;
 
   if (digitalRead(encoder[0].clkPin) == digitalRead(encoder[0].dirPin))
   {
@@ -22,14 +20,15 @@ void IRAM_ATTR readEncoder0()
     encoder[0].tickCount += 1;
     encoder[0].frequency = encoder[0].freqPerTick / encoder[0].pulsePerRev;
   }
+
+  encoder[0].oldFreqTime = currentTime;
+  encoder[0].checkFreqTime = currentTime;
 }
 
 void IRAM_ATTR readEncoder1()
 {
   uint64_t currentTime = esp_timer_get_time();
   encoder[1].freqPerTick = 1000000.00 / (double)(currentTime - encoder[1].oldFreqTime);
-  encoder[1].oldFreqTime = currentTime;
-  encoder[1].checkFreqTime = currentTime;
 
   if (digitalRead(encoder[1].clkPin) == digitalRead(encoder[1].dirPin))
   {
@@ -41,6 +40,49 @@ void IRAM_ATTR readEncoder1()
     encoder[1].tickCount += 1;
     encoder[1].frequency = encoder[1].freqPerTick / encoder[1].pulsePerRev;
   }
+
+  encoder[1].oldFreqTime = currentTime;
+  encoder[1].checkFreqTime = currentTime;
+}
+
+void IRAM_ATTR readEncoder2()
+{
+  uint64_t currentTime = esp_timer_get_time();
+  encoder[2].freqPerTick = 1000000.00 / (double)(currentTime - encoder[2].oldFreqTime);
+
+  if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
+  {
+    encoder[2].tickCount -= 1;
+    encoder[2].frequency = -encoder[2].freqPerTick / encoder[2].pulsePerRev;
+  }
+  else
+  {
+    encoder[2].tickCount += 1;
+    encoder[2].frequency = encoder[2].freqPerTick / encoder[2].pulsePerRev;
+  }
+
+  encoder[2].oldFreqTime = currentTime;
+  encoder[2].checkFreqTime = currentTime;
+}
+
+void IRAM_ATTR readEncoder3()
+{
+  uint64_t currentTime = esp_timer_get_time();
+  encoder[3].freqPerTick = 1000000.00 / (double)(currentTime - encoder[3].oldFreqTime);
+
+  if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
+  {
+    encoder[3].tickCount -= 1;
+    encoder[3].frequency = -encoder[3].freqPerTick / encoder[3].pulsePerRev;
+  }
+  else
+  {
+    encoder[3].tickCount += 1;
+    encoder[3].frequency = encoder[3].freqPerTick / encoder[3].pulsePerRev;
+  }
+
+  encoder[3].oldFreqTime = currentTime;
+  encoder[3].checkFreqTime = currentTime;
 }
 //----------------------------------------------------------------------------------------------//
 
@@ -53,6 +95,8 @@ void encoderInit()
 
   attachInterrupt(digitalPinToInterrupt(encoder[0].clkPin), readEncoder0, RISING);
   attachInterrupt(digitalPinToInterrupt(encoder[1].clkPin), readEncoder1, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoder[2].clkPin), readEncoder2, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoder[3].clkPin), readEncoder3, RISING);
 }
 
 void velFilterInit()
@@ -150,7 +194,7 @@ void loop()
   }
 
   // check to see if motor has stopped
-  if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001)
+  if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001 && abs(target[2]) < 0.001 && abs(target[3]) < 0.001)
   {
     if (pidMode == 1)
     {
@@ -185,8 +229,8 @@ void loop()
   {
     if ((esp_timer_get_time() - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
-      if (pidMode == 1) writeSpeed(0.0, 0.0);
-      else writePWM(0, 0);
+      if (pidMode == 1) writeSpeed(0.0, 0.0, 0.0, 0.0);
+      else writePWM(0, 0, 0, 0);
     }
   }
 }
