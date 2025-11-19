@@ -46,43 +46,61 @@ int LED_PIN = 2;
 
 const int num_of_motors = 4;
 
+// // motor 0 H-Bridge Connection
+// int IN1_0 = 26, IN2_0 = 27, EN_0 = 12;
+// // motor 1 H-Bridge Connection
+// int IN1_1 = 18, IN2_1 = 19, EN_1 = 23;
+// // motor 2 H-Bridge Connection
+// int IN1_2 = 33, IN2_2 = 25, EN_2 = 32;
+// // motor 3 H-Bridge Connection
+// int IN1_3 = 17, IN2_3 = 5, EN_3 = 16;
+
 // motor 0 H-Bridge Connection
-int IN1_0 = 27, IN2_0 = 26;
+int IN1_0 = 5, IN2_0 = 17, EN_0 = 16;
 // motor 1 H-Bridge Connection
-int IN1_1 = 18, IN2_1 = 17;
+int IN1_1 = 19, IN2_1 = 18, EN_1 = 23;
 // motor 2 H-Bridge Connection
-int IN1_2 = 33, IN2_2 = 32;
+int IN1_2 = 26, IN2_2 = 27, EN_2 = 12;
 // motor 3 H-Bridge Connection
-int IN1_3 = 23, IN2_3 = 19;
+int IN1_3 = 33, IN2_3 = 25, EN_3 = 32;
 
 MotorControl motor[num_of_motors] = {
-  MotorControl(IN1_0, IN2_0), // motor 0
-  MotorControl(IN1_1, IN2_1), // motor 1
-  MotorControl(IN1_2, IN2_2), // motor 2
-  MotorControl(IN1_3, IN2_3), // motor 3
+  MotorControl(IN1_0, IN2_0, EN_0), // motor 0
+  MotorControl(IN1_1, IN2_1, EN_1), // motor 1
+  MotorControl(IN1_2, IN2_2, EN_2), // motor 2
+  MotorControl(IN1_3, IN2_3, EN_3) // motor 3
 };
 
 double enc_ppr[num_of_motors]={
   1000.0, // motor 0 encoder pulse per revolution parameter
   1000.0, // motor 1 encoder pulse per revolution parameter
   1000.0, // motor 2 encoder pulse per revolution parameter
-  1000.0, // motor 3 encoder pulse per revolution parameter
+  1000.0 // motor 3 encoder pulse per revolution parameter
 };
 
+// // motor 0 encoder connection
+// int enc0_clkPin = 39, enc0_dirPin = 36;
+// // motor 1 encoder connection
+// int enc1_clkPin = 35, enc1_dirPin = 34;
+// // motor 2 encoder connection
+// int enc2_clkPin = 14, enc2_dirPin = 13;
+// // motor 3 encoder connection
+// int enc3_clkPin = 4, enc3_dirPin = 15;
+
 // motor 0 encoder connection
-int enc0_clkPin = 39, enc0_dirPin = 36;
+int enc0_clkPin = 15, enc0_dirPin = 4;
 // motor 1 encoder connection
 int enc1_clkPin = 35, enc1_dirPin = 34;
 // motor 2 encoder connection
 int enc2_clkPin = 13, enc2_dirPin = 14;
 // motor 3 encoder connection
-int enc3_clkPin = 4, enc3_dirPin = 16;
+int enc3_clkPin = 39, enc3_dirPin = 36;
 
 QuadEncoder encoder[num_of_motors] = {
   QuadEncoder(enc0_clkPin, enc0_dirPin, enc_ppr[0]), // motor 0 encoder connection
   QuadEncoder(enc1_clkPin, enc1_dirPin, enc_ppr[1]), // motor 1 encoder connection
   QuadEncoder(enc2_clkPin, enc2_dirPin, enc_ppr[2]), // motor 2 encoder connection
-  QuadEncoder(enc3_clkPin, enc3_dirPin, enc_ppr[3]), // motor 3 encoder connection
+  QuadEncoder(enc3_clkPin, enc3_dirPin, enc_ppr[3]) // motor 3 encoder connection
 };
 
 // adaptive lowpass Filter
