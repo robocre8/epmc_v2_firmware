@@ -44,63 +44,41 @@ const uint8_t CLEAR_DATA_BUFFER = 0x2C;
 //--------------- global variables -----------------//
 int LED_PIN = 2;
 
-const int num_of_motors = 4;
+const int num_of_motors = 2;
 
 // // motor 0 H-Bridge Connection
 // int IN1_0 = 26, IN2_0 = 27, EN_0 = 12;
 // // motor 1 H-Bridge Connection
 // int IN1_1 = 18, IN2_1 = 19, EN_1 = 23;
-// // motor 2 H-Bridge Connection
-// int IN1_2 = 33, IN2_2 = 25, EN_2 = 32;
-// // motor 3 H-Bridge Connection
-// int IN1_3 = 17, IN2_3 = 5, EN_3 = 16;
 
 // motor 0 H-Bridge Connection
 int IN1_0 = 5, IN2_0 = 17, EN_0 = 16;
 // motor 1 H-Bridge Connection
 int IN1_1 = 19, IN2_1 = 18, EN_1 = 23;
-// motor 2 H-Bridge Connection
-int IN1_2 = 26, IN2_2 = 27, EN_2 = 12;
-// motor 3 H-Bridge Connection
-int IN1_3 = 33, IN2_3 = 25, EN_3 = 32;
 
 MotorControl motor[num_of_motors] = {
   MotorControl(IN1_0, IN2_0, EN_0), // motor 0
   MotorControl(IN1_1, IN2_1, EN_1), // motor 1
-  MotorControl(IN1_2, IN2_2, EN_2), // motor 2
-  MotorControl(IN1_3, IN2_3, EN_3) // motor 3
 };
 
 double enc_ppr[num_of_motors]={
   1000.0, // motor 0 encoder pulse per revolution parameter
   1000.0, // motor 1 encoder pulse per revolution parameter
-  1000.0, // motor 2 encoder pulse per revolution parameter
-  1000.0 // motor 3 encoder pulse per revolution parameter
 };
 
 // // motor 0 encoder connection
 // int enc0_clkPin = 39, enc0_dirPin = 36;
 // // motor 1 encoder connection
 // int enc1_clkPin = 35, enc1_dirPin = 34;
-// // motor 2 encoder connection
-// int enc2_clkPin = 14, enc2_dirPin = 13;
-// // motor 3 encoder connection
-// int enc3_clkPin = 4, enc3_dirPin = 15;
 
 // motor 0 encoder connection
 int enc0_clkPin = 15, enc0_dirPin = 4;
 // motor 1 encoder connection
 int enc1_clkPin = 35, enc1_dirPin = 34;
-// motor 2 encoder connection
-int enc2_clkPin = 13, enc2_dirPin = 14;
-// motor 3 encoder connection
-int enc3_clkPin = 39, enc3_dirPin = 36;
 
 QuadEncoder encoder[num_of_motors] = {
   QuadEncoder(enc0_clkPin, enc0_dirPin, enc_ppr[0]), // motor 0 encoder connection
   QuadEncoder(enc1_clkPin, enc1_dirPin, enc_ppr[1]), // motor 1 encoder connection
-  QuadEncoder(enc2_clkPin, enc2_dirPin, enc_ppr[2]), // motor 2 encoder connection
-  QuadEncoder(enc3_clkPin, enc3_dirPin, enc_ppr[3]) // motor 3 encoder connection
 };
 
 // adaptive lowpass Filter
@@ -108,27 +86,19 @@ const int filterOrder = 1;
 double cutOffFreq[num_of_motors] = {
   2.5, // motor 0 velocity filter cutoff frequency
   2.5, // motor 1 velocity filter cutoff frequency
-  2.5, // motor 2 velocity filter cutoff frequency
-  2.5, // motor 3 velocity filter cutoff frequency
 };
 
 AdaptiveLowPassFilter velFilter[num_of_motors] = {
   AdaptiveLowPassFilter(filterOrder, cutOffFreq[0]), // motor 0 velocity filter
   AdaptiveLowPassFilter(filterOrder, cutOffFreq[1]), // motor 1 velocity filter
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[2]), // motor 2 velocity filter
-  AdaptiveLowPassFilter(filterOrder, cutOffFreq[3]), // motor 3 velocity filter
 };
 
 double filteredVel[num_of_motors] = {
   0.0,
   0.0,
-  0.0,
-  0.0,
 };
 
 double unfilteredVel[num_of_motors] = {
-  0.0,
-  0.0,
   0.0,
   0.0,
 };
@@ -139,13 +109,9 @@ double outMin = -255.0, outMax = 255.0;
 double kp[num_of_motors] = {
   0.0,
   0.0,
-  0.0,
-  0.0,
 };
 
 double ki[num_of_motors] = {
-  0.0,
-  0.0,
   0.0,
   0.0,
 };
@@ -153,13 +119,9 @@ double ki[num_of_motors] = {
 double kd[num_of_motors] = {
   0.0,
   0.0,
-  0.0,
-  0.0,
 };
 
 double target[num_of_motors] = {
-  0.0,
-  0.0,
   0.0,
   0.0,
 };
@@ -167,15 +129,11 @@ double target[num_of_motors] = {
 double output[num_of_motors] = {
   0.0,
   0.0,
-  0.0,
-  0.0,
 };
 
 SimplePID pidMotor[num_of_motors] = {
   SimplePID(kp[0], ki[0], kd[0], outMin, outMax),
   SimplePID(kp[1], ki[1], kd[1], outMin, outMax),
-  SimplePID(kp[2], ki[2], kd[2], outMin, outMax),
-  SimplePID(kp[3], ki[3], kd[3], outMin, outMax),
 };
 
 
@@ -185,14 +143,10 @@ int pidMode = 0;
 int rdir[num_of_motors] = {
   1,
   1,
-  1,
-  1,
 };
 
 // // maximum motor velocity that can be commanded
 double maxVel[num_of_motors] = {
-  10.0,
-  10.0,
   10.0,
   10.0,
 };
@@ -212,49 +166,49 @@ bool firstLoad = false;
 //--------------- storage variables -----------------//
 Preferences storage;
 
-const char * ppr_key[num_of_motors] = {
+const char * ppr_key[4] = {
   "ppr0",
   "ppr1",
   "ppr2",
   "ppr3",
 };
 
-const char * cf_key[num_of_motors] = {
+const char * cf_key[4] = {
   "cf0",
   "cf1",
   "cf2",
   "cf3",
 };
 
-const char * kp_key[num_of_motors] = {
+const char * kp_key[4] = {
   "kp0",
   "kp1",
   "kp2",
   "kp3",
 };
 
-const char * ki_key[num_of_motors] = {
+const char * ki_key[4] = {
   "ki0",
   "ki1",
   "ki2",
   "ki3",
 };
 
-const char * kd_key[num_of_motors] = {
+const char * kd_key[4] = {
   "kd0",
   "kd1",
   "kd2",
   "kd3",
 };
 
-const char * rdir_key[num_of_motors] = {
+const char * rdir_key[4] = {
   "rdir0",
   "rdir1",
   "rdir2",
   "rdir3",
 };
 
-const char * maxVel_key[num_of_motors] = {
+const char * maxVel_key[4] = {
   "maxVel0",
   "maxVel1",
   "maxVel2",
@@ -324,9 +278,9 @@ void loadStoredParams(){
 
 
 //--------------- global functions ----------------//
-float writeSpeed(float v0, float v1, float v2, float v3)
+float writeSpeed(float v0, float v1)
 {
-  float targetVel[num_of_motors] = {v0, v1, v2, v3};
+  float targetVel[num_of_motors] = {v0, v1};
   for (int i = 0; i < num_of_motors; i += 1)
   {
     float tVel = constrain(targetVel[i], -1.00 * maxVel[i], maxVel[i]);
@@ -337,9 +291,9 @@ float writeSpeed(float v0, float v1, float v2, float v3)
   return 1.0;
 }
 
-float writePWM(int pwm0, int pwm1, int pwm2, int pwm3)
+float writePWM(int pwm0, int pwm1)
 {
-  int pwm[num_of_motors] = {pwm0, pwm1, pwm2, pwm3};
+  int pwm[num_of_motors] = {pwm0, pwm1};
   if(pidMode == 0){
     for (int i = 0; i < num_of_motors; i += 1){
       int p = constrain(pwm[i], -255, 255);
@@ -351,7 +305,7 @@ float writePWM(int pwm0, int pwm1, int pwm2, int pwm3)
   return 1.0;
 }
 
-void readPos(float &pos0, float &pos1, float &pos2, float &pos3)
+void readPos(float &pos0, float &pos1)
 {  
   double posData[num_of_motors];
   for (int i = 0; i < num_of_motors; i += 1){
@@ -359,11 +313,9 @@ void readPos(float &pos0, float &pos1, float &pos2, float &pos3)
   }
   pos0 = (float)posData[0];
   pos1 = (float)posData[1];
-  pos2 = (float)posData[2];
-  pos3 = (float)posData[3];
 }
 
-void readFilteredVel(float &v0, float &v1, float &v2, float &v3)
+void readFilteredVel(float &v0, float &v1)
 {
   double velData[num_of_motors];
   for (int i = 0; i < num_of_motors; i += 1){
@@ -371,11 +323,9 @@ void readFilteredVel(float &v0, float &v1, float &v2, float &v3)
   }
   v0 = (float)velData[0];
   v1 = (float)velData[1];
-  v2 = (float)velData[2];
-  v3 = (float)velData[3];
 }
 
-void readUnfilteredVel(float &v0, float &v1, float &v2, float &v3)
+void readUnfilteredVel(float &v0, float &v1)
 {
   double velData[num_of_motors];
   for (int i = 0; i < num_of_motors; i += 1){
@@ -383,11 +333,9 @@ void readUnfilteredVel(float &v0, float &v1, float &v2, float &v3)
   }
   v0 = (float)velData[0];
   v1 = (float)velData[1];
-  v2 = (float)velData[2];
-  v3 = (float)velData[3];
 }
 
-void readTargetVel(float &v0, float &v1, float &v2, float &v3)
+void readTargetVel(float &v0, float &v1)
 {
   double velData[num_of_motors];
   for (int i = 0; i < num_of_motors; i += 1){
@@ -395,8 +343,6 @@ void readTargetVel(float &v0, float &v1, float &v2, float &v3)
   }
   v0 = (float)velData[0];
   v1 = (float)velData[1];
-  v2 = (float)velData[2];
-  v3 = (float)velData[3];
 }
 
 float setEncoderPPR(int motor_no, double ppr)
