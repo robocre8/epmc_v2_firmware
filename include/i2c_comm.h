@@ -51,8 +51,8 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&v1, &data[4], sizeof(float));
       memcpy(&v2, &data[8], sizeof(float));
       memcpy(&v3, &data[12], sizeof(float));
-      writeSpeed(v0, v1, v2, v3);
-      digitalWrite(LED_PIN, LOW);
+      float res = writeSpeed(v0, v1, v2, v3);
+      prepareResponse1(res);
       break;
     }
 
@@ -63,8 +63,8 @@ void handleCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&pwm1, &data[4], sizeof(float));
       memcpy(&pwm2, &data[8], sizeof(float));
       memcpy(&pwm3, &data[12], sizeof(float));
-      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
-      digitalWrite(LED_PIN, LOW);
+      float res = writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      prepareResponse1(res);
       break;
     }
 

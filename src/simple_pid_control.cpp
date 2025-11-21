@@ -9,8 +9,6 @@ SimplePID::SimplePID(double Kp, double Ki, double Kd, double out_min, double out
   kd = Kd;
   outMax = out_max;
   outMin = out_min;
-
-  errorPrev = error;
 }
 
 void SimplePID::setParameters(double Kp, double Ki, double Kd, double out_min, double out_max)
@@ -55,55 +53,45 @@ void SimplePID::begin()
   reset();
 }
 
-double SimplePID::compute(double target, double actual)
+double SimplePID::compute(double target, double input)
 {
   double dt = (double)(esp_timer_get_time() - lastTime)/1000000.0;
 
-  error = target - actual;
+  p_error = target - input;
 
-  if (integratorIsOn)
-  {
-    errorInt += (error * dt);
-  }
+  /*
+  * Avoid derivative kick and allow tuning changes,
+  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
+  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+  */
+  d_error = ((target - prevTarget) - (input - prevInput))/dt;
+
+  output = (kp * p_error) + i_term + (kd * d_error);
+
+  // Accumulate Integral error *or* Limit output.
+  // Stop accumulating when output saturates
+  if (output >= outMax)
+    output = outMax;
+  else if (output <= outMin)
+    output = outMin;
   else
-  {
-    errorInt += 0.0;
-  }
+    /*
+    * allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+    */
+    i_term += ki * p_error * dt;
 
-  errorDot = (error - errorPrev)/dt;
-
-  outUnsat = (kp * error) + (ki * errorInt) + (kd * errorDot);
-
-  if (outUnsat > outMax)
-  {
-    outSat = outMax;
-    integratorIsOn = false;
-  }
-  else if (outUnsat < outMin)
-  {
-    outSat = outMin;
-    integratorIsOn = false;
-  }
-  else
-  {
-    outSat = outUnsat;
-    integratorIsOn = true;
-  }
-
-  errorPrev = error;
+  prevTarget = target;
+  prevInput = input;
   lastTime = esp_timer_get_time();
 
-  return outSat;
+  return output;
 }
 
 void SimplePID::reset()
 {
-  error = 0.0;
-  errorPrev = 0.0;
-  errorInt = 0.0;
-  errorDot = 0.0;
-  outSat = 0.0;
-  outUnsat = 0.0;
-  integratorIsOn = false;
+  output = 0.0;
+  prevInput = 0.0;
+  prevTarget = 0.0;
+  i_term = 0.0;
   lastTime = esp_timer_get_time();
 }

@@ -1,4 +1,4 @@
-#include "motor_control.h"
+#include "l298n_motor_control.h"
 
 MotorControl::MotorControl(int IN1_pin, int IN2_pin, int en_pin)
 {
@@ -19,42 +19,19 @@ void MotorControl::sendPWM(int pwmVal)
   if (pwmVal > 0)
   {
     analogWrite(enPin, abs(pwmVal));
-    setForwardDirection();
+    digitalWrite(in1Pin, HIGH);
+    digitalWrite(in2Pin, LOW);
   }
   else if (pwmVal < 0)
   {
     analogWrite(enPin, abs(pwmVal));
-    setReverseDirection();
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, HIGH);
   }
   else
   {
     analogWrite(enPin, 0);
-    setHalt();
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, LOW);
   }
-}
-
-int MotorControl::getDirection()
-{
-  return dir;
-}
-
-void MotorControl::setForwardDirection()
-{
-  dir = 1;
-  digitalWrite(in1Pin, HIGH);
-  digitalWrite(in2Pin, LOW);
-}
-
-void MotorControl::setReverseDirection()
-{
-  dir = 0;
-  digitalWrite(in1Pin, LOW);
-  digitalWrite(in2Pin, HIGH);
-}
-
-void MotorControl::setHalt()
-{
-  dir = 0;
-  digitalWrite(in1Pin, LOW);
-  digitalWrite(in2Pin, LOW);
 }

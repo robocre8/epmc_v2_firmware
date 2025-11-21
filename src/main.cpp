@@ -120,8 +120,7 @@ void pidInit()
 // Timing variables in esp_timer_get_timeeconds
 // please do not adjust any of the values as it can affect important operations
 uint64_t sensorReadTime, sensorReadTimeInterval = 1000;
-uint64_t pidTime, pidTimeInterval = 5000;
-uint64_t pidStopTime, pidStopTimeInterval = 500000;
+uint64_t pidTime, pidTimeInterval = 2500;
 //---------------------------------------------------------------------------------------------
 
 
@@ -143,6 +142,8 @@ void setup()
 
   analogWriteResolution(8); // 8 Bit resolution
   analogWriteFrequency(1000); // 1kHz
+  // analogWriteFrequency(5000); // 5kHz
+  // analogWriteFrequency(10000); // 10kHz
 
   encoderInit();
   velFilterInit();
@@ -158,7 +159,6 @@ void setup()
   uint64_t now_us = esp_timer_get_time();
   sensorReadTime = now_us;
   pidTime = now_us;
-  pidStopTime = now_us;
   cmdVelTimeout = now_us;
 
 }
@@ -193,26 +193,17 @@ void loop()
     pidTime = esp_timer_get_time();
   }
 
-  // check to see if motor has stopped
+  // stop motor if target is zero.
   if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001 && abs(target[2]) < 0.001 && abs(target[3]) < 0.001)
   {
     if (pidMode == 1)
     {
-      if ((esp_timer_get_time() - pidStopTime) >= pidStopTimeInterval)
-      {
         for (int i = 0; i < num_of_motors; i += 1)
         {
           target[i] = 0.0;
-          velFilter[i].clear();
-          pidMotor[i].begin();
+          pidMotor[i].reset();
         }
         setPidModeFunc(0);
-        pidStopTime = esp_timer_get_time();
-      }
-    }
-    else
-    {
-      pidStopTime = esp_timer_get_time();
     }
   }
   else
@@ -221,7 +212,6 @@ void loop()
     {
       setPidModeFunc(1);
     }
-    pidStopTime = esp_timer_get_time();
   }
 
   // command timeout

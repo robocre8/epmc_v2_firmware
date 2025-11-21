@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
-#include "motor_control.h"
+#include "l298n_motor_control.h"
 #include "encoder_setup.h"
 #include "adaptive_low_pass_filter.h"
 #include "simple_pid_control.h"
@@ -572,7 +572,7 @@ float clearDataBuffer()
     unfilteredVel[i] = 0.0;
     target[i] = 0.0;
     velFilter[i].clear();
-    pidMotor[i].begin();
+    pidMotor[i].reset();
   }
   return 1.0;
 }

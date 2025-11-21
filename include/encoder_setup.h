@@ -14,7 +14,7 @@ public:
   volatile long tickCount;
   double freqPerTick;
   volatile double frequency;
-  volatile uint64_t oldFreqTime, checkFreqTime, freqSampleTime=2000;
+  volatile uint64_t oldFreqTime, checkFreqTime, freqSampleTime=25000;
 
   QuadEncoder(int clk_pin, int dir_pin, float ppr);
 

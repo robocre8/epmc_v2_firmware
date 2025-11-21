@@ -14,16 +14,14 @@ class SimplePID {
     void setKd(double Kd);
     void setOutLimit(double out_max, double out_min);
     void begin();
+    void reset();
     double compute(double target, double actual);
 
   private:
-    double error, errorPrev, errorInt, errorDot;
+    double p_error, d_error, i_term, prevInput, prevTarget;
     uint64_t lastTime;
     double kp, ki, kd;
-    double outMax, outMin, outSat, outUnsat;
-    bool integratorIsOn;
-
-    void reset();
+    double outMax, outMin, output;
 };
 
 #endif
