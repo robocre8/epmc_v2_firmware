@@ -64,11 +64,18 @@ int IN1_2 = 26, IN2_2 = 27, EN_2 = 12;
 // motor 3 H-Bridge Connection
 int IN1_3 = 33, IN2_3 = 25, EN_3 = 32;
 
+// MotorControl motor[num_of_motors] = {
+//   MotorControl(IN1_0, IN2_0, EN_0), // motor 0
+//   MotorControl(IN1_1, IN2_1, EN_1), // motor 1
+//   MotorControl(IN1_2, IN2_2, EN_2), // motor 2
+//   MotorControl(IN1_3, IN2_3, EN_3) // motor 3
+// };
+
 MotorControl motor[num_of_motors] = {
-  MotorControl(IN1_0, IN2_0, EN_0), // motor 0
-  MotorControl(IN1_1, IN2_1, EN_1), // motor 1
-  MotorControl(IN1_2, IN2_2, EN_2), // motor 2
-  MotorControl(IN1_3, IN2_3, EN_3) // motor 3
+  MotorControl(IN1_0, IN2_0), // motor 0
+  MotorControl(IN1_1, IN2_1), // motor 1
+  MotorControl(IN1_2, IN2_2), // motor 2
+  MotorControl(IN1_3, IN2_3) // motor 3
 };
 
 double enc_ppr[num_of_motors]={
