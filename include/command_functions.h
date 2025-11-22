@@ -323,6 +323,9 @@ void readTargetVel(float &v0, float &v1)
 
 float setEncoderPPR(int motor_no, double ppr)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   enc_ppr[motor_no] = ppr;
   storage.begin(params_ns, false);
   storage.putDouble(ppr_key[motor_no], enc_ppr[motor_no]);
@@ -332,12 +335,18 @@ float setEncoderPPR(int motor_no, double ppr)
 }
 float getEncoderPPR(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 1000.0;
+
   return (float)enc_ppr[motor_no];
 }
 
 
 float setMotorKp(int motor_no, double Kp)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   kp[motor_no] = Kp;
   storage.begin(params_ns, false);
   storage.putDouble(kp_key[motor_no], kp[motor_no]);
@@ -348,12 +357,18 @@ float setMotorKp(int motor_no, double Kp)
 }
 float getMotorKp(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   return (float)kp[motor_no];
 }
 
 
 float setMotorKi(int motor_no, double Ki)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   ki[motor_no] = Ki;
   storage.begin(params_ns, false);
   storage.putDouble(ki_key[motor_no], ki[motor_no]);
@@ -364,12 +379,18 @@ float setMotorKi(int motor_no, double Ki)
 }
 float getMotorKi(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   return (float)ki[motor_no];
 }
 
 
 float setMotorKd(int motor_no, double Kd)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   kd[motor_no] = Kd;
   storage.begin(params_ns, false);
   storage.putDouble(kd_key[motor_no], kd[motor_no]);
@@ -380,12 +401,18 @@ float setMotorKd(int motor_no, double Kd)
 }
 float getMotorKd(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   return (float)kd[motor_no];
 }
 
 
 float setRdir(int motor_no, double dir)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   if (dir >= 0)
     rdir[motor_no] = 1;
   else
@@ -397,6 +424,9 @@ float setRdir(int motor_no, double dir)
 }
 float getRdir(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 1.0;
+
   return (float)rdir[motor_no];
 }
 
@@ -404,6 +434,9 @@ float getRdir(int motor_no)
 
 float setCutoffFreq(int motor_no, double f0)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   cutOffFreq[motor_no] = f0;
   storage.begin(params_ns, false);
   storage.putDouble(cf_key[motor_no], cutOffFreq[motor_no]);
@@ -413,6 +446,9 @@ float setCutoffFreq(int motor_no, double f0)
 }
 float getCutoffFreq(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 2.5;
+
   return (float)cutOffFreq[motor_no];
 }
 
@@ -420,6 +456,9 @@ float getCutoffFreq(int motor_no)
 
 float setMaxVel(int motor_no, double max_vel)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 0.0;
+
   maxVel[motor_no] = fabs(max_vel);
   storage.begin(params_ns, false);
   storage.putDouble(maxVel_key[motor_no], maxVel[motor_no]);
@@ -428,6 +467,9 @@ float setMaxVel(int motor_no, double max_vel)
 }
 float getMaxVel(int motor_no)
 {
+  if (motor_no<0 || motor_no>num_of_motors-1)
+    return 10.0;
+
   return (float)maxVel[motor_no];
 }
 
