@@ -14,7 +14,7 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&v1, &data[4], sizeof(float));
       memcpy(&v2, &data[8], sizeof(float));
       memcpy(&v3, &data[12], sizeof(float));
-      writeSpeed(v0, v1, v2, v3);
+      writeSpeed(v0, v1);
       break;
     }
 
@@ -25,14 +25,14 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
       memcpy(&pwm1, &data[4], sizeof(float));
       memcpy(&pwm2, &data[8], sizeof(float));
       memcpy(&pwm3, &data[12], sizeof(float));
-      writePWM((int)pwm0, (int)pwm1, (int)pwm2, (int)pwm3);
+      writePWM((int)pwm0, (int)pwm1);
       break;
     }
 
 
     case READ_POS: {
-      float pos0, pos1, pos2, pos3;
-      readPos(pos0, pos1, pos2, pos3);
+      float pos0, pos1, pos2=0.0, pos3=0.0;
+      readPos(pos0, pos1);
       Serial.write((uint8_t*)&pos0, sizeof(pos0));
       Serial.write((uint8_t*)&pos1, sizeof(pos1));
       Serial.write((uint8_t*)&pos2, sizeof(pos2));
@@ -42,8 +42,8 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_VEL: {
-      float v0, v1, v2, v3;
-      readFilteredVel(v0, v1, v2, v3);
+      float v0, v1, v2=0.0, v3=0.0;
+      readFilteredVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
       Serial.write((uint8_t*)&v2, sizeof(v2));
@@ -53,8 +53,8 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_UVEL: {
-      float v0, v1, v2, v3;
-      readUnfilteredVel(v0, v1, v2, v3);
+      float v0, v1, v2=0.0, v3=0.0;
+      readUnfilteredVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
       Serial.write((uint8_t*)&v2, sizeof(v2));
@@ -64,8 +64,8 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_TVEL: {
-      float v0, v1, v2, v3;
-      readTargetVel(v0, v1, v2, v3);
+      float v0, v1, v2=0.0, v3=0.0;
+      readTargetVel(v0, v1);
       Serial.write((uint8_t*)&v0, sizeof(v0));
       Serial.write((uint8_t*)&v1, sizeof(v1));
       Serial.write((uint8_t*)&v2, sizeof(v2));
@@ -245,9 +245,9 @@ void processCommand(uint8_t cmd, uint8_t* data, uint8_t length) {
 
 
     case READ_MOTOR_DATA: {
-      float pos0, pos1, pos2, pos3, v0, v1, v2, v3;
-      readPos(pos0, pos1, pos2, pos3);
-      readFilteredVel(v0, v1, v2, v3);
+      float pos0, pos1, pos2=0.0, pos3=0.0, v0, v1, v2=0.0, v3=0.0;
+      readPos(pos0, pos1);
+      readFilteredVel(v0, v1);
       Serial.write((uint8_t*)&pos0, sizeof(pos0));
       Serial.write((uint8_t*)&pos1, sizeof(pos1));
       Serial.write((uint8_t*)&pos2, sizeof(pos2));

@@ -45,47 +45,6 @@ void IRAM_ATTR readEncoder1()
   encoder[1].checkFreqTime = currentTime;
 }
 
-void IRAM_ATTR readEncoder2()
-{
-  uint64_t currentTime = esp_timer_get_time();
-  encoder[2].freqPerTick = 1000000.00 / (double)(currentTime - encoder[2].oldFreqTime);
-
-  if (digitalRead(encoder[2].clkPin) == digitalRead(encoder[2].dirPin))
-  {
-    encoder[2].tickCount -= 1;
-    encoder[2].frequency = -encoder[2].freqPerTick / encoder[2].pulsePerRev;
-  }
-  else
-  {
-    encoder[2].tickCount += 1;
-    encoder[2].frequency = encoder[2].freqPerTick / encoder[2].pulsePerRev;
-  }
-
-  encoder[2].oldFreqTime = currentTime;
-  encoder[2].checkFreqTime = currentTime;
-}
-
-void IRAM_ATTR readEncoder3()
-{
-  uint64_t currentTime = esp_timer_get_time();
-  encoder[3].freqPerTick = 1000000.00 / (double)(currentTime - encoder[3].oldFreqTime);
-
-  if (digitalRead(encoder[3].clkPin) == digitalRead(encoder[3].dirPin))
-  {
-    encoder[3].tickCount -= 1;
-    encoder[3].frequency = -encoder[3].freqPerTick / encoder[3].pulsePerRev;
-  }
-  else
-  {
-    encoder[3].tickCount += 1;
-    encoder[3].frequency = encoder[3].freqPerTick / encoder[3].pulsePerRev;
-  }
-
-  encoder[3].oldFreqTime = currentTime;
-  encoder[3].checkFreqTime = currentTime;
-}
-//----------------------------------------------------------------------------------------------//
-
 void encoderInit()
 {
   for (int i = 0; i < num_of_motors; i += 1)
@@ -95,9 +54,9 @@ void encoderInit()
 
   attachInterrupt(digitalPinToInterrupt(encoder[0].clkPin), readEncoder0, RISING);
   attachInterrupt(digitalPinToInterrupt(encoder[1].clkPin), readEncoder1, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[2].clkPin), readEncoder2, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoder[3].clkPin), readEncoder3, RISING);
 }
+
+//----------------------------------------------------------------------------------------------//
 
 void velFilterInit()
 {
@@ -119,6 +78,7 @@ void pidInit()
 //---------------------------------------------------------------------------------------------
 // Timing variables in esp_timer_get_timeeconds
 // please do not adjust any of the values as it can affect important operations
+uint64_t serialCommTime, serialCommTimeInterval = 5000;
 uint64_t sensorReadTime, sensorReadTimeInterval = 1000;
 uint64_t pidTime, pidTimeInterval = 2500;
 //---------------------------------------------------------------------------------------------
@@ -138,8 +98,6 @@ void setup()
   Wire.onRequest(onRequest);
   Wire.begin(i2cAddress);
 
-  pinMode(LED_PIN, OUTPUT);
-
   analogWriteResolution(8); // 8 Bit resolution
   analogWriteFrequency(1000); // 1kHz
   // analogWriteFrequency(5000); // 5kHz
@@ -149,6 +107,7 @@ void setup()
   velFilterInit();
   pidInit();
 
+  pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   delay(1000);
   digitalWrite(LED_PIN, HIGH);
@@ -167,6 +126,11 @@ void loop()
 {
   // Serial comm loop
   recieve_and_send_data();
+  // if ((esp_timer_get_time() - serialCommTime) >= serialCommTimeInterval)
+  // {
+  //   recieve_and_send_data();
+  //   serialCommTime = esp_timer_get_time();
+  // }
   
   if ((esp_timer_get_time() - sensorReadTime) >= sensorReadTimeInterval)
   {
@@ -194,7 +158,7 @@ void loop()
   }
 
   // stop motor if target is zero.
-  if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001 && abs(target[2]) < 0.001 && abs(target[3]) < 0.001)
+  if (abs(target[0]) < 0.001 && abs(target[1]) < 0.001)
   {
     if (pidMode == 1)
     {
@@ -219,8 +183,8 @@ void loop()
   {
     if ((esp_timer_get_time() - cmdVelTimeout) >= cmdVelTimeoutInterval)
     {
-      if (pidMode == 1) writeSpeed(0.0, 0.0, 0.0, 0.0);
-      else writePWM(0, 0, 0, 0);
+      if (pidMode == 1) writeSpeed(0.0, 0.0);
+      else writePWM(0, 0);
     }
   }
 }
